@@ -5,6 +5,43 @@ from typing import Generic, List, Optional, Tuple, TypeVar
 ContextType = TypeVar("ContextType")
 
 
+class Ball:
+    value: int
+
+    def __init__(self, value: int):
+        self.value = value
+    
+    def __str__(self) -> str:
+        return f"Ball({self.value})"
+
+    @staticmethod
+    def generate_pool() -> List["Ball"]:
+        entries = [
+            # limit, step
+            (    10,    10),
+            (    20,     5),
+            (   100,    10),
+            ( 1_500,    50),
+            ( 2_500,   100),
+            (10_000,   250),
+            (50_000, 2_500),
+            (75_000, 5_000),
+        ]
+
+        balls = []
+        val = 0
+        for entry in entries:
+            limit, step = entry
+            assert (limit - val) % step == 0, f"{entry} won't hit limit from {val}"
+            while val < limit:
+                val += step
+                balls.append(Ball(val))
+        
+        assert len(balls) == 100, f"Got {len(balls)} balls: {balls}"
+        
+        return balls
+
+
 class Player(Generic[ContextType]):
     # Display name of the player
     name: str
