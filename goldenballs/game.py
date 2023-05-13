@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, Optional, Tuple, TypeVar
+from collections import defaultdict
+from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar
 
 from goldenballs.util import pop_random
 
@@ -126,7 +127,7 @@ class WaitingState(GameState):
 
         # Start game if enough players are gathered
         if len(self.game.players) == self.PLAYER_COUNT:
-            self.game.send_message(
+            self.game.send_channel_message(
                 f"Game starting with {', '.join(player.get_name() for player in self.game.players)}"
             )
             state = FourPlayerState(self.game)
@@ -174,17 +175,20 @@ class FourPlayerState(GameState):
             ]
 
         # Announce the shown balls
-        self.game.send_message('\n'.join((
+        ball_list = lambda balls: ', '.join(ball.describe() for ball in balls)
+        self.game.send_channel_message('\n'.join((
             "Everyone has been given 4 balls, 2 hidden and 2 shown.",
             "The shown balls are:",
             '\n'.join(
-                f"    {player.get_name()} - {', '.join(ball.describe() for ball in self.shown_balls[player])}"
+                f"    {player.get_name()} - {ball_list(self.shown_balls[player])}"
                 for player in self.game.players
             ),
             "Your hidden balls will be sent in dms."
         )))
 
         # Send players their hidden balls
+        for player in self.game.players:
+            self.game.send_dm(player, f"Your hidden balls are: {ball_list(self.hidden_balls[player])}")
 
     async def on_dm(self, player: Player, message: str) -> StateRet:
         # Take votes
@@ -197,7 +201,8 @@ class FourPlayerState(GameState):
 class Game:
     players: List[Player]
     state: GameState
-    messages: List[str]
+    channel_messages: List[str]
+    dms: DefaultDict[Player, List[str]]
 
     # The pool of balls in the machine
     machine_balls: List[CashBall]
@@ -208,7 +213,8 @@ class Game:
     def __init__(self):
         self.players = []
         self.state = WaitingState(self)
-        self.messages = []
+        self.channel_messages = []
+        self.dms = defaultdict(list)
         self.machine_balls = CashBall.generate_pool()
         self.active_balls = []
     
@@ -235,11 +241,23 @@ class Game:
         self.state, response = self.state.on_dm(player, message)
         return response
 
-    def send_message(self, msg: str):
-        self.messages.append(msg)
+    def send_channel_message(self, msg: str):
+        self.channel_messages.append(msg)
 
-    def has_message(self) -> bool:
-        return len(self.messages) > 0
+    def has_channel_message(self) -> bool:
+        return len(self.channel_messages) > 0
 
-    def get_message(self) -> str:
-        return self.messages.pop(0)
+    def get_channel_message(self) -> str:
+        return self.channel_messages.pop(0)
+
+    def send_dm(self, player: Player, msg: str):
+        self.dms[player].append(msg)
+    
+    def get_dm_subjects(self) -> Iterable[Player]:
+        return self.dms.keys()
+    
+    def has_dm(self, player: Player) -> bool:
+        return len(self.dms[player]) > 0
+    
+    def get_dm(self, player: Player) -> str:
+        return self.dms[player].pop(0)

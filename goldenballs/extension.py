@@ -1,5 +1,5 @@
 from typing import Dict
-from discord import Interaction, Member
+from discord import HTTPException, Interaction, Member
 from discord.app_commands import command, guild_only
 from discord.ext.commands import Bot, Cog
 
@@ -28,8 +28,17 @@ class GoldenBalls(Cog):
         return self.players[member.id]
     
     async def flush_message_queue(self, ctx: Interaction, game: Game):
-        while game.has_message():
-            await ctx.channel.send(game.get_message())
+        while game.has_channel_message():
+            await ctx.channel.send(game.get_channel_message())
+        for player in game.get_dm_subjects():
+            while game.has_dm(player):
+                member: Member = player.context
+                dm = game.get_dm(player)
+                try:
+                    await member.create_dm()
+                    await member.send(dm)
+                except HTTPException as e:
+                    await ctx.channel.send(f"Error sending dm to {player.get_name()}: {e}")
 
     @command()
     @guild_only()
