@@ -4,8 +4,6 @@ from typing import Generic, List, Optional, Tuple, TypeVar
 
 ContextType = TypeVar("ContextType")
 
-# New state, response message
-StateRet = Tuple["GameState", Optional[str]]
 
 class Player(Generic[ContextType]):
     # Display name of the player
@@ -21,23 +19,27 @@ class Player(Generic[ContextType]):
         self.name = name
         self.current_game = None
         self.context = context
-    
+
     def is_busy(self):
         """Checks if the player is in a name"""
 
         return self.current_game is not None
-    
+
     def get_name(self):
         """Gets the display name for the player"""
 
         return self.name
-    
+
     def join_game(self, game: "Game"):
         self.current_game = game
         game.players.append(self)
-    
+
     def __str__(self):
         return f"{self.get_name()}[{self.current_game}]"
+
+
+# New state, response message
+StateRet = Tuple["GameState", Optional[str]]
 
 
 class GameState(ABC):
@@ -122,6 +124,6 @@ class Game():
 
     def has_message(self) -> bool:
         return len(self.messages) > 0
-    
+
     def get_message(self) -> str:
         return self.messages.pop(0)
