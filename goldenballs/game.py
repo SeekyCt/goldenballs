@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
+from enum import Enum
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
 from goldenballs.util import pop_random
@@ -12,6 +13,10 @@ class Ball(ABC):
     @abstractmethod
     def describe(self) -> str:
         raise NotImplementedError
+    
+    @staticmethod
+    def describe_list(balls: List["Ball"]) -> str:
+        return ', '.join(ball.describe() for ball in balls) 
 
 class KillerBall(Ball):
     def describe(self) -> str:
@@ -114,6 +119,11 @@ class GameState(ABC):
         """Update function for when a player tries to vote"""
 
         return self, "The game is not in a voting stage."
+    
+    def on_pick(self, player: Player, ball_id: int) -> StateRet:
+        """Update function for when a player picks a ball"""
+
+        return self, "The game is not in a picking stage."
 
 
 class WaitingState(GameState):
@@ -176,12 +186,11 @@ class HiddenShownState(GameState):
             ]
 
         # Announce the shown balls
-        ball_list = lambda balls: ', '.join(ball.describe() for ball in balls)
         self.game.send_channel_message('\n'.join((
             f"Everyone has been given {shown_count + hidden_count} balls, {hidden_count} hidden and {shown_count} shown.",
             "The shown balls are:",
             '\n'.join(
-                f"    {player.get_name()} - {ball_list(self.shown_balls[player])}"
+                f"    {player.get_name()} - {Ball.describe_list(self.shown_balls[player])}"
                 for player in self.game.players
             ),
             "Your hidden balls will be sent in dms."
@@ -189,7 +198,7 @@ class HiddenShownState(GameState):
 
         # Send players their hidden balls
         for player in self.game.players:
-            self.game.send_dm(player, f"Your hidden balls are: {ball_list(self.hidden_balls[player])}")
+            self.game.send_dm(player, f"Your hidden balls are: {Ball.describe_list(self.hidden_balls[player])}")
 
         # Init votes
         self.votes = {}
@@ -231,11 +240,10 @@ class HiddenShownState(GameState):
             )))
 
             # Reveal all balls
-            ball_list = lambda balls: ', '.join(ball.describe() for ball in balls)
             self.game.send_channel_message('\n'.join((
                 "The hidden balls were:",
                 '\n'.join(
-                    f"    {player.get_name()} - {ball_list(self.hidden_balls[player])}"
+                    f"    {player.get_name()} - {Ball.describe_list(self.hidden_balls[player])}"
                     for player in self.game.players
                 ),
             )))
@@ -302,9 +310,71 @@ class ThreePlayerState(HiddenShownState):
 
 
 class BinWinState(GameState):
+    ACTION_BIN = 0
+    ACTION_WIN = 1
+    ACTION_NAMES = ["bin", "win"]
+
+    action: int
+    player_id: int
+    win_balls: List[Ball]
+
     def __init__(self, game: "Game"):
         super().__init__(game)
 
+        self.action = self.ACTION_BIN
+        self.player_id = 0
+        self.win_balls = []
+
+        self.announce()
+    
+    def announce(self):
+        if len(self.win_balls) > 0:
+            self.game.send_channel_message(
+                f"Balls to win so far: {Ball.describe_list(self.win_balls)}"
+            )
+        self.game.send_channel_message(
+            f"Pick a ball from 1-{len(self.game.active_balls)} to {self.ACTION_NAMES[self.action]}."
+        )
+
+    def _get_player(self):
+        return self.game.players[self.player_id]
+
+    def on_pick(self, player: Player, ball_id: int) -> StateRet:
+        # Check the player can pick
+        if player != self._get_player():
+            return self, "It's not your turn to pick."
+        
+        # Check the ball is valid
+        idx = ball_id - 1
+        if not (0 <= idx < len(self.game.active_balls)):
+            return self, "That's not a valid ball."
+        
+        # Remove the ball from the pool
+        ball = self.game.active_balls.pop(idx)
+        if self.action == self.ACTION_WIN:
+            self.win_balls.append(ball)
+
+        # Set message
+        message = f"{player.get_name()} {self.ACTION_NAMES[self.action]}s the {ball.describe()}"
+
+        # Move to next action
+        if self.action == self.ACTION_BIN:
+            self.action = self.ACTION_WIN
+        else:
+            self.action = self.ACTION_BIN
+            self.player_id = (self.player_id + 1) % 2
+
+        if len(self.game.active_balls) > 0:
+            self.announce()
+            return self, message
+        else:
+            self.game.send_channel_message(f"Final balls to win: {Ball.describe_list(self.win_balls)}")
+            self.game.active_balls = self.win_balls
+            return SplitStealState(self.game), message
+
+class SplitStealState(GameState):
+    def __init__(self, game: "Game"):
+        super().__init__(game)
 
 class Game:
     players: List[Player]
@@ -350,6 +420,10 @@ class Game:
 
     def on_vote(self, player: Player, target: Player) -> Optional[str]:
         self.state, response = self.state.on_vote(player, target)
+        return response
+    
+    def on_pick(self, player: Player, ball_id: int) -> Optional[str]:
+        self.state, response = self.state.on_pick(player, ball_id)
         return response
 
     def send_channel_message(self, msg: str):

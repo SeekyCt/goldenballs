@@ -99,6 +99,25 @@ class GoldenBalls(Cog):
         msg = game.on_vote(player, target_player)
         await ctx.response.send_message(msg, ephemeral=True)
         await self.flush_message_queue(ctx, game)
+    
+    @command()
+    @guild_only()
+    async def pick(self, ctx: Interaction, ball_id: int, user: Member = None):
+        # Get target user
+        user = user or ctx.user
+
+        # Check if a game is in this channel
+        game = await self._get_game(ctx)
+        if game is None:
+            return
+        
+        # Notify game of vote
+        player = self._get_player(user)
+        msg = game.on_pick(player, ball_id)
+        await ctx.response.send_message(msg)
+        await self.flush_message_queue(ctx, game)
+    
+
 
 async def setup(bot: Bot):
     await bot.add_cog(GoldenBalls(bot))
