@@ -87,7 +87,7 @@ class Player(Generic[ContextType]):
         self.current_game = game
         game.players.append(self)
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.get_name()}[{self.current_game is not None}]"
 
 
