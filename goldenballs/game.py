@@ -202,6 +202,10 @@ class FourPlayerState(GameState):
         # Check player isn't voting for themself
         if player == target:
             return self, "You can't vote for yourself"
+        
+        # Check player is in this game
+        if player.current_game != self.game:
+            return self, "You can't vote for someone who isn't in the game."
 
         # Register vote
         self.votes[player] = target
