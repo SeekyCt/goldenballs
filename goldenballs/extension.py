@@ -20,7 +20,7 @@ class GoldenBalls(Cog):
         self.players = {}
         self.games = {}
     
-    def get_player(self, member: Member) -> Player:
+    def _get_player(self, member: Member) -> Player:
         # Register player if needed
         if member.id not in self.players:
             self.players[member.id] = Player(member.nick or member.name, member)
@@ -58,13 +58,12 @@ class GoldenBalls(Cog):
             return
         
         # Try start game
-        host = self.get_player(ctx.user)
+        host = self._get_player(ctx.user)
         game, message = Game.start_game(host)
+        await ctx.response.send_message(message)
         if game is not None:
             self.games[ctx.channel_id] = game
             await self.flush_message_queue(ctx, game)
-
-        await ctx.response.send_message(message)
 
     @command()
     @guild_only()
@@ -78,10 +77,10 @@ class GoldenBalls(Cog):
             return
         
         # Try join game
-        player = self.get_player(user)
+        player = self._get_player(user)
         msg = game.on_join(player)
-        await self.flush_message_queue(ctx, game)
         await ctx.response.send_message(msg)
+        await self.flush_message_queue(ctx, game)
     
     @command()
     @guild_only()
@@ -95,11 +94,11 @@ class GoldenBalls(Cog):
             return
         
         # Notify game of vote
-        player = self.get_player(user)
-        target_player = self.get_player(target)
+        player = self._get_player(user)
+        target_player = self._get_player(target)
         msg = game.on_vote(player, target_player)
-        await self.flush_message_queue(ctx, game)
         await ctx.response.send_message(msg)
+        await self.flush_message_queue(ctx, game)
 
 async def setup(bot: Bot):
     await bot.add_cog(GoldenBalls(bot))
