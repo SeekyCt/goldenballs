@@ -206,6 +206,9 @@ class FourPlayerState(GameState):
         # Register vote
         self.votes[player] = target
 
+        # Announce vote
+        self.game.send_channel_message(f"{player.get_name()} has voted.")
+
         # Check for all votes being ready
         if len(self.votes) == self.PLAYER_COUNT:
             # TODO: handle ties
