@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar
 
 from goldenballs.util import pop_random
@@ -88,7 +88,7 @@ class Player(Generic[ContextType]):
         game.players.append(self)
 
     def __str__(self):
-        return f"{self.get_name()}[{self.current_game}]"
+        return f"{self.get_name()}[{self.current_game is not None}]"
 
 
 # New state, response message
@@ -104,12 +104,12 @@ class GameState(ABC):
     def on_join(self, player: Player) -> StateRet:
         """Update function for when a player tries to join"""
 
-        return self, "Game is not joinable."
+        return self, "The game is not joinable."
 
-    def on_dm(self, player: Player, message: str) -> StateRet:
-        """Update function for when a player sends a dm"""
+    def on_vote(self, player: Player, target: Player) -> StateRet:
+        """Update function for when a player tries to vote"""
 
-        return self, "Not implemented."
+        return self, "The game is not in a voting stage."
 
 
 class WaitingState(GameState):
@@ -149,6 +149,7 @@ class FourPlayerState(GameState):
 
     shown_balls: Dict[Player, List[Ball]]
     hidden_balls: Dict[Player, List[Ball]]
+    votes: Dict[Player, Player]
 
     def __init__(self, game: "Game"):
         super().__init__(game)
@@ -190,12 +191,49 @@ class FourPlayerState(GameState):
         for player in self.game.players:
             self.game.send_dm(player, f"Your hidden balls are: {ball_list(self.hidden_balls[player])}")
 
-    async def on_dm(self, player: Player, message: str) -> StateRet:
-        # Take votes
+        # Init votes
+        self.votes = {}
+
+    def on_vote(self, player: Player, target: Player) -> StateRet:
+        # Check player hasn't already voted
+        if player in self.votes:
+            return self, "You already voted."
+        
+        # Check player isn't voting for themself
+        if player == target:
+            return self, "You can't vote for yourself"
+
+        # Register vote
+        self.votes[player] = target
 
         # Check for all votes being ready
+        if len(self.votes) == self.PLAYER_COUNT:
+            # TODO: handle ties
+            
+            # Find who was voted off
+            loser = Counter(self.votes.values()).most_common()[0][0]
 
-        return self, message
+            # Announce the votes
+            self.game.send_channel_message('\n'.join((
+                "The votes are in:",
+                '\n'.join(
+                    f"    - {player.get_name()}"
+                    for player in self.votes.values()
+                ),
+                f"{loser.get_name()} has been voted off."
+            )))
+
+            # Reveal all balls
+            ball_list = lambda balls: ', '.join(ball.describe() for ball in balls)
+            self.game.send_channel_message('\n'.join((
+                "The hidden balls were:",
+                '\n'.join(
+                    f"    {player.get_name()} - {ball_list(self.hidden_balls[player])}"
+                    for player in self.game.players
+                ),
+            )))
+
+        return self, "Vote registered."
 
 
 class Game:
@@ -218,6 +256,9 @@ class Game:
         self.machine_balls = CashBall.generate_pool()
         self.active_balls = []
     
+    def __str__(self) -> str:
+        return f"Game({', '.join(str(player) for player in self.players)})"
+
     def add_ball(self, ball: Ball):
         self.active_balls.append(ball)
 
@@ -237,8 +278,8 @@ class Game:
         self.state, response = self.state.on_join(player)
         return response
 
-    def on_dm(self, player: Player, message) -> Optional[str]:
-        self.state, response = self.state.on_dm(player, message)
+    def on_vote(self, player: Player, target: Player) -> Optional[str]:
+        self.state, response = self.state.on_vote(player, target)
         return response
 
     def send_channel_message(self, msg: str):

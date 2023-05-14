@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 from discord import HTTPException, Interaction, Member
 from discord.app_commands import command, guild_only
 from discord.ext.commands import Bot, Cog
@@ -39,6 +39,12 @@ class GoldenBalls(Cog):
                     await member.send(dm)
                 except HTTPException as e:
                     await ctx.channel.send(f"Error sending dm to {player.get_name()}: {e}")
+    
+    async def _get_game(self, ctx: Interaction) -> Optional[Game]:
+        game = self.games.get(ctx.channel_id)
+        if game is None:
+            await ctx.response.send_message("Error: there's no game in this channel.")
+        return game
 
     @command()
     @guild_only()
@@ -67,9 +73,8 @@ class GoldenBalls(Cog):
         user = user or ctx.user
 
         # Check if a game is in this channel
-        game = self.games.get(ctx.channel_id)
+        game = await self._get_game(ctx)
         if game is None:
-            await ctx.response.send_message("Error: there's no game in this channel.")
             return
         
         # Try join game
@@ -77,7 +82,24 @@ class GoldenBalls(Cog):
         msg = game.on_join(player)
         await self.flush_message_queue(ctx, game)
         await ctx.response.send_message(msg)
+    
+    @command()
+    @guild_only()
+    async def vote(self, ctx: Interaction, target: Member, user: Member = None):
+        # Get target user
+        user = user or ctx.user
 
+        # Check if a game is in this channel
+        game = await self._get_game(ctx)
+        if game is None:
+            return
+        
+        # Notify game of vote
+        player = self.get_player(user)
+        target_player = self.get_player(target)
+        msg = game.on_vote(player, target_player)
+        await self.flush_message_queue(ctx, game)
+        await ctx.response.send_message(msg)
 
 async def setup(bot: Bot):
     await bot.add_cog(GoldenBalls(bot))
