@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
-from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar
+from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
 from goldenballs.util import pop_random
 
@@ -87,6 +87,10 @@ class Player(Generic[ContextType]):
         self.current_game = game
         game.players.append(self)
 
+    def leave_game(self, game: "Game"):
+        self.current_game = None
+        game.players.remove(self)
+
     def __repr__(self):
         return f"{self.get_name()}[{self.current_game is not None}]"
 
@@ -137,28 +141,24 @@ class WaitingState(GameState):
         return state, "You joined the game."
 
 
-class FourPlayerState(GameState):
-    CASH_BALL_COUNT = 12
-    KILLER_COUNT = 4
-
-    SHOWN_COUNT = 2
-    HIDDEN_COUNT = 2
-    PLAYER_COUNT = 4
-
-    assert CASH_BALL_COUNT + KILLER_COUNT == (SHOWN_COUNT + HIDDEN_COUNT) * PLAYER_COUNT
-
+class HiddenShownState(GameState):
     shown_balls: Dict[Player, List[Ball]]
     hidden_balls: Dict[Player, List[Ball]]
     votes: Dict[Player, Player]
+    next_state: Type[GameState]
 
-    def __init__(self, game: "Game"):
+    def __init__(self, game: "Game", shown_count: int, hidden_count: int, new_cash_ball_count: int,
+                 new_killer_count: int, next_state: Type[GameState]):
         super().__init__(game)
 
+        # Backup next state
+        self.next_state = next_state
+
         # Setup the initial balls
-        for _ in range(self.CASH_BALL_COUNT):
+        for _ in range(new_cash_ball_count):
             ball = pop_random(self.game.machine_balls)
             self.game.active_balls.append(ball)
-        for _ in range(self.KILLER_COUNT):
+        for _ in range(new_killer_count):
             self.game.add_ball(KillerBall())
 
         # Assign balls to players
@@ -168,17 +168,17 @@ class FourPlayerState(GameState):
         for player in self.game.players:
             self.shown_balls[player] = [
                 pop_random(balls)
-                for _ in range(self.SHOWN_COUNT)
+                for _ in range(shown_count)
             ]
             self.hidden_balls[player] = [
                 pop_random(balls)
-                for _ in range(self.HIDDEN_COUNT)
+                for _ in range(hidden_count)
             ]
 
         # Announce the shown balls
         ball_list = lambda balls: ', '.join(ball.describe() for ball in balls)
         self.game.send_channel_message('\n'.join((
-            "Everyone has been given 4 balls, 2 hidden and 2 shown.",
+            f"Everyone has been given {shown_count + hidden_count} balls, {hidden_count} hidden and {shown_count} shown.",
             "The shown balls are:",
             '\n'.join(
                 f"    {player.get_name()} - {ball_list(self.shown_balls[player])}"
@@ -214,7 +214,7 @@ class FourPlayerState(GameState):
         self.game.send_channel_message(f"{player.get_name()} has voted.")
 
         # Check for all votes being ready
-        if len(self.votes) == self.PLAYER_COUNT:
+        if len(self.votes) == len(self.game.players):
             # TODO: handle ties
             
             # Find who was voted off
@@ -241,21 +241,67 @@ class FourPlayerState(GameState):
             )))
 
             # Remove the loser and their balls
-            self.game.players.remove(loser)
+            loser.leave_game(self.game)
             for ball in self.shown_balls[loser]:
                 self.game.active_balls.remove(ball)
             for ball in self.hidden_balls[loser]:
                 self.game.active_balls.remove(ball)
 
             # Move to next state
-            state = ThreePlayerState(self.game)
+            state = self.next_state(self.game)
         else:
             state = self
 
         return state, "Vote registered."
 
 
-class ThreePlayerState(GameState):
+class FourPlayerState(HiddenShownState):
+    SHOWN_COUNT = 2
+    HIDDEN_COUNT = 2
+    PLAYER_BALLS_COUNT = SHOWN_COUNT + HIDDEN_COUNT
+    PLAYER_COUNT = 4
+
+    CASH_BALL_COUNT = 12
+    KILLER_COUNT = 4
+    BALL_COUNT = CASH_BALL_COUNT + KILLER_COUNT
+    assert BALL_COUNT == PLAYER_BALLS_COUNT * PLAYER_COUNT
+
+    END_BALL_COUNT = BALL_COUNT - PLAYER_BALLS_COUNT
+    
+    def __init__(self, game: "Game"):
+        super().__init__(
+            game,
+            self.SHOWN_COUNT,
+            self.HIDDEN_COUNT,
+            self.CASH_BALL_COUNT,
+            self.KILLER_COUNT,
+            ThreePlayerState
+        )
+
+
+class ThreePlayerState(HiddenShownState):
+    SHOWN_COUNT = 2
+    HIDDEN_COUNT = 3
+    PLAYER_BALLS_COUNT = SHOWN_COUNT + HIDDEN_COUNT
+    PLAYER_COUNT = 3
+
+    CASH_BALL_COUNT = 2
+    KILLER_COUNT = 1
+    BALL_COUNT = FourPlayerState.END_BALL_COUNT + CASH_BALL_COUNT + KILLER_COUNT
+    assert BALL_COUNT == PLAYER_BALLS_COUNT * PLAYER_COUNT, BALL_COUNT
+
+    def __init__(self, game: "Game"):
+        super().__init__(
+            game,
+            self.SHOWN_COUNT,
+            self.HIDDEN_COUNT,
+            self.CASH_BALL_COUNT,
+            self.KILLER_COUNT,
+            BinWinState
+        )
+
+
+class BinWinState(GameState):
     def __init__(self, game: "Game"):
         super().__init__(game)
 
