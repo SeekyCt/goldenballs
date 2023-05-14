@@ -97,7 +97,7 @@ class GoldenBalls(Cog):
         player = self._get_player(user)
         target_player = self._get_player(target)
         msg = game.on_vote(player, target_player)
-        await ctx.response.send_message(msg)
+        await ctx.response.send_message(msg, ephemeral=True)
         await self.flush_message_queue(ctx, game)
 
 async def setup(bot: Bot):
