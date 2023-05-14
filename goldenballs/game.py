@@ -233,7 +233,24 @@ class FourPlayerState(GameState):
                 ),
             )))
 
-        return self, "Vote registered."
+            # Remove the loser and their balls
+            self.game.players.remove(loser)
+            for ball in self.shown_balls[loser]:
+                self.game.active_balls.remove(ball)
+            for ball in self.hidden_balls[loser]:
+                self.game.active_balls.remove(ball)
+
+            # Move to next state
+            state = ThreePlayerState(self.game)
+        else:
+            state = self
+
+        return state, "Vote registered."
+
+
+class ThreePlayerState(GameState):
+    def __init__(self, game: "Game"):
+        super().__init__(game)
 
 
 class Game:
