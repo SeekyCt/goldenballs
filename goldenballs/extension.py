@@ -136,6 +136,25 @@ class GoldenBalls(Cog):
         msg = game.on_vote(player, target_player)
         await ctx.response.send_message(msg, ephemeral=True)
         await self._handle_game_update(ctx)
+    
+    @command()
+    @guild_only()
+    async def view_balls(self, ctx: Interaction, user: Member = None):
+        """Round 1 & 2 - view your hidden balls"""
+
+        # Get target user
+        user = user or ctx.user
+
+        # Check if a game is in this channel
+        game = await self._get_game(ctx)
+        if game is None:
+            return
+
+        # Notify game of vote
+        player = self._get_player(user)
+        msg = game.on_view_balls(player)
+        await ctx.response.send_message(msg, ephemeral=True)
+        await self._handle_game_update(ctx)
 
     @command()
     @guild_only()

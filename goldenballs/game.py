@@ -148,6 +148,11 @@ class GameState(ABC):
 
         return self, "The game is not in the voting stage."
 
+    def on_view_balls(self, player: Player) -> StateRet:
+        """Update function for when a player tries to view their hidden balls"""
+
+        return self, "You don't have any hidden balls to view."
+
     def on_pick(self, player: Player, ball_id: int) -> StateRet:
         """Update function for when a player tries to pick a ball"""
 
@@ -314,6 +319,9 @@ class HiddenShownState(GameState):
             state = self
 
         return state, "Vote registered."
+    
+    def on_view_balls(self, player: Player) -> StateRet:
+        return self, f"Your hidden balls: {Ball.describe_list(self.hidden_balls[player])}"
 
 
 class FourPlayerState(HiddenShownState):
@@ -611,6 +619,12 @@ class Game(Generic[PlayerCtx]):
         """Handles a player trying to vote in the game"""
 
         self.state, response = self.state.on_vote(player, target)
+        return response
+    
+    def on_view_balls(self, player: Player) -> str:
+        """Handles a player trying to view their hidden balls"""
+
+        self.state, response = self.state.on_view_balls(player)
         return response
     
     def on_pick(self, player: Player, ball_id: int) -> str:
