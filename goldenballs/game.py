@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from enum import Enum
+from operator import countOf
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
 from goldenballs.util import pop_random
@@ -13,14 +14,21 @@ class Ball(ABC):
     @abstractmethod
     def describe(self) -> str:
         raise NotImplementedError
-    
+
+    @abstractmethod
+    def apply(self, current_prize: int) -> int:
+        raise NotImplementedError
+
     @staticmethod
     def describe_list(balls: List["Ball"]) -> str:
-        return ', '.join(ball.describe() for ball in balls) 
+        return ', '.join(ball.describe() for ball in balls)
 
 class KillerBall(Ball):
     def describe(self) -> str:
         return "Killer Ball"
+    
+    def apply(self, prize: int) -> int:
+        return round(prize / 10)
 
 class CashBall(Ball):
     value: int
@@ -34,6 +42,9 @@ class CashBall(Ball):
     
     def describe(self) -> str:
         return f"£{self.value} Ball"
+
+    def apply(self, prize) -> int:
+        return prize + self.value
 
     @staticmethod
     def generate_pool() -> List["CashBall"]:
@@ -118,12 +129,22 @@ class GameState(ABC):
     def on_vote(self, player: Player, target: Player) -> StateRet:
         """Update function for when a player tries to vote"""
 
-        return self, "The game is not in a voting stage."
+        return self, "The game is not in the voting stage."
     
     def on_pick(self, player: Player, ball_id: int) -> StateRet:
-        """Update function for when a player picks a ball"""
+        """Update function for when a player tries to pick a ball"""
 
-        return self, "The game is not in a picking stage."
+        return self, "The game is not in the picking stage."
+    
+    def on_split(self, player: Player) -> StateRet:
+        """Update function for when a player tries to split"""
+
+        return self, "The game is not in the split/steal stage"
+    
+    def on_steal(self, player: Player) -> StateRet:
+        """Update function for when a player tries to steal"""
+
+        return self, "The game is not in the split/steal stage"
 
 
 class WaitingState(GameState):
@@ -373,8 +394,65 @@ class BinWinState(GameState):
 
 
 class SplitStealState(GameState):
+    class Action(Enum):
+        SPLIT = 0
+        STEAL = 1
+
+    actions: Dict[Player, Action]
+    prize: int
+
     def __init__(self, game: "Game", initial_balls: Iterable[Ball]):
         super().__init__(game)
+
+        self.actions = {}
+
+        self.prize = 0
+        for ball in initial_balls:
+            self.prize = ball.apply(self.prize)
+        
+        self.game.send_channel_message(f"The final prize money is £{self.prize}. Choose whether to split or steal.")
+    
+    def handle_action(self, player: Player, action: Action) -> StateRet:
+        if player in self.actions:
+            return self, "You already chose your action."
+        if player.current_game != self.game:
+            return self, "You aren't in this game."
+        
+        self.actions[player] = action
+
+        if len(self.actions) == len(self.game.players):
+            steal_count = countOf(self.actions.values(), self.Action.STEAL)
+            if steal_count == 2:
+                self.game.send_channel_message(f"Both players stole, the money is lost.")
+            elif steal_count == 1:
+                if self.actions[self.game.players[0]] == self.Action.STEAL:
+                    winner = self.game.players[0]
+                else:
+                    winner = self.game.players[1]
+                
+                self.game.send_channel_message(f"{winner.get_name()} steals all £{self.prize}.")
+            else:
+                prize = self.prize // 2
+                self.game.send_channel_message(f"Both players split, they get £{self.prize}.")
+            state = FinishedState(self.game)
+        else:
+            state = self
+
+        return self, "Action chosen."
+            
+
+    def on_split(self, player: Player) -> StateRet:
+        return self.handle_action(player, self.Action.SPLIT)
+
+    def on_steal(self, player: Player) -> StateRet:
+        return self.handle_action(player, self.Action.STEAL)
+
+
+class FinishedState(GameState):
+    def __init__(self, game: "Game"):
+        super().__init__(game)
+        self.game.finished = True
+
 
 class Game:
     players: List[Player]
@@ -385,12 +463,17 @@ class Game:
     # The pool of balls in the machine
     machine_balls: List[CashBall]
 
+    finished: bool
+    results: Dict[Player, int]
+
     def __init__(self):
         self.players = []
         self.state = WaitingState(self)
         self.channel_messages = []
         self.dms = defaultdict(list)
         self.machine_balls = CashBall.generate_pool()
+        self.finished = False
+        self.results = {}
 
     def __str__(self) -> str:
         return f"Game({', '.join(str(player) for player in self.players)})"
@@ -422,6 +505,14 @@ class Game:
         self.state, response = self.state.on_pick(player, ball_id)
         return response
 
+    def on_split(self, player: Player):
+        self.state, response = self.state.on_split(player)
+        return response
+
+    def on_steal(self, player: Player):
+        self.state, response = self.state.on_steal(player)
+        return response
+
     def send_channel_message(self, msg: str):
         self.channel_messages.append(msg)
 
@@ -442,3 +533,9 @@ class Game:
     
     def get_dm(self, player: Player) -> str:
         return self.dms[player].pop(0)
+    
+    def is_finished(self) -> bool:
+        return self.finished
+
+    def get_results(self) -> Dict[Player, int]:
+        return self.results

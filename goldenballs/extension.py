@@ -117,7 +117,43 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg)
         await self.flush_message_queue(ctx, game)
     
+    @command()
+    @guild_only()
+    async def split(self, ctx: Interaction, user: Member = None):
+        # Get target user
+        user = user or ctx.user
 
+        # Check if a game is in this channel
+        game = await self._get_game(ctx)
+        if game is None:
+            return
+        
+        # Notify game of action
+        player = self._get_player(user)
+        msg = game.on_split(player)
+        await ctx.response.send_message(msg, ephemeral=True)
+        await self.flush_message_queue(ctx, game)
+
+        # TODO: check ending
+
+    @command()
+    @guild_only()
+    async def steal(self, ctx: Interaction, user: Member = None):
+        # Get target user
+        user = user or ctx.user
+
+        # Check if a game is in this channel
+        game = await self._get_game(ctx)
+        if game is None:
+            return
+        
+        # Notify game of action
+        player = self._get_player(user)
+        msg = game.on_steal(player)
+        await ctx.response.send_message(msg, ephemeral=True)
+        await self.flush_message_queue(ctx, game)
+
+        # TODO: check ending
 
 async def setup(bot: Bot):
     await bot.add_cog(GoldenBalls(bot))
