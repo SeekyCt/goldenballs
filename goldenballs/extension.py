@@ -12,7 +12,13 @@ GBPlayer = Player[Member]
 
 
 class GoldenBalls(Cog):
+    # Discord bot instance
+    bot: Bot
+
+    # Player instances for each discord user
     players: Dict[UserId, GBPlayer]
+
+    # Active games in each channel
     games: Dict[ChannelId, Game]
 
     def __init__(self, bot):
@@ -21,6 +27,8 @@ class GoldenBalls(Cog):
         self.games = {}
     
     def _get_player(self, member: Member) -> Player:
+        """Get the player instance for a discord member"""
+
         # Register player if needed
         if member.id not in self.players:
             self.players[member.id] = Player(member.nick or member.name, member)
@@ -28,8 +36,13 @@ class GoldenBalls(Cog):
         return self.players[member.id]
     
     async def flush_message_queue(self, ctx: Interaction, game: Game):
+        """Outputs all queued messages to discord"""
+
+        # Handle channel messages
         while game.has_channel_message():
             await ctx.channel.send(game.get_channel_message())
+
+        # Handle dms
         for player in game.get_dm_subjects():
             while game.has_dm(player):
                 member: Member = player.context
@@ -41,14 +54,19 @@ class GoldenBalls(Cog):
                     await ctx.channel.send(f"Error sending dm to {player.get_name()}: {e}")
     
     async def _get_game(self, ctx: Interaction) -> Optional[Game]:
+        """Gets the game for an interaction, if it exists"""
+
         game = self.games.get(ctx.channel_id)
         if game is None:
             await ctx.response.send_message("Error: there's no game in this channel.")
+
         return game
 
     @command()
     @guild_only()
     async def start(self, ctx: Interaction, user: Member = None):
+        """Starts a game in a channel, if it's free"""
+
         # Get target user
         user = user or ctx.user
 
@@ -68,6 +86,8 @@ class GoldenBalls(Cog):
     @command()
     @guild_only()
     async def join(self, ctx: Interaction, user: Member = None):
+        """Joins the game in the channel, if it exists and the user is free"""
+
         # Get target user
         user = user or ctx.user
 
@@ -85,6 +105,8 @@ class GoldenBalls(Cog):
     @command()
     @guild_only()
     async def vote(self, ctx: Interaction, target: Member, user: Member = None):
+        """Round 1 & 2 - votes for the player to remove"""
+
         # Get target user
         user = user or ctx.user
 
@@ -103,6 +125,8 @@ class GoldenBalls(Cog):
     @command()
     @guild_only()
     async def pick(self, ctx: Interaction, ball_id: int, user: Member = None):
+        """Round 3 - picks a ball"""
+
         # Get target user
         user = user or ctx.user
 
@@ -120,6 +144,8 @@ class GoldenBalls(Cog):
     @command()
     @guild_only()
     async def split(self, ctx: Interaction, user: Member = None):
+        """Round 4 - chooses to split the prize"""
+
         # Get target user
         user = user or ctx.user
 
@@ -139,6 +165,8 @@ class GoldenBalls(Cog):
     @command()
     @guild_only()
     async def steal(self, ctx: Interaction, user: Member = None):
+        """Round 4 - chooses to steal the prize"""
+
         # Get target user
         user = user or ctx.user
 
