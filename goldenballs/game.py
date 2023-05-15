@@ -9,6 +9,8 @@ from goldenballs.util import pop_random
 
 PlayerCtx = TypeVar("PlayerCtx")
 
+# New state, response message
+StateRet = Tuple["GameState", str]
 
 class Ball(ABC):
     """Abstract ball class, can be a killer or have a cash value"""
@@ -117,15 +119,24 @@ class Player(Generic[PlayerCtx]):
         return f"{self.get_name()}[{self.current_game is not None}]"
 
 
-# New state, response message
-StateRet = Tuple["GameState", str]
-
-
 class GameState(ABC):
+    """Abstract state for the golden ball game
+
+    Default event handlers - all stubbed except for leaving"""
+
     game: "Game"
 
     def __init__(self, game: "Game"):
         self.game = game
+
+    def _require_playing(self, player: Player, you=True) -> Optional[StateRet]:
+        """Returns an error if the player is not playing"""
+
+        if player.current_game != self.game:
+            youre = "You're" if you else f"{player.get_name()} is"
+            return self, f"{youre} not in this game"
+        else:
+            return None
 
     def on_join(self, player: Player) -> StateRet:
         """Update function for when a player tries to join"""
@@ -136,7 +147,7 @@ class GameState(ABC):
         """Update function for when a player tries to vote"""
 
         return self, "The game is not in the voting stage."
-    
+
     def on_pick(self, player: Player, ball_id: int) -> StateRet:
         """Update function for when a player tries to pick a ball"""
 
@@ -155,15 +166,19 @@ class GameState(ABC):
     def on_leave(self, player: Player) -> StateRet:
         """Update function for when a player tries to leave"""
 
-        if player not in self.game.players:
-            return self, "You're not in this game."
+        # Check player is in the game
+        if ret := self._require_playing(player):
+            return ret
 
+        # Remove the player
         self.game.remove_player(player)
 
         return self, "You left the game."
 
 
 class WaitingState(GameState):
+    """State for waiting for all players to join"""
+
     PLAYER_COUNT = 4
 
     def on_join(self, player: Player) -> StateRet:
@@ -230,7 +245,8 @@ class HiddenShownState(GameState):
                 f"    {player.get_name()} - {Ball.describe_list(self.shown_balls[player])}"
                 for player in self.game.players
             ),
-            "Your hidden balls will be sent in dms."
+            "Your hidden balls will be sent in dms.",
+            "Use /vote to pick a player to remove from the game, along with their balls."
         )))
 
         # Send players their hidden balls
@@ -241,17 +257,15 @@ class HiddenShownState(GameState):
         self.votes = {}
 
     def on_vote(self, player: Player, target: Player) -> StateRet:
-        # Check player hasn't already voted
+        # Check the vote is valid
         if player in self.votes:
             return self, "You already voted."
-        
-        # Check player isn't voting for themself
         if player == target:
             return self, "You can't vote for yourself"
-        
-        # Check player is in this game
-        if player.current_game != self.game:
-            return self, "You can't vote for someone who isn't in the game."
+        if ret := self._require_playing(player):
+            return ret
+        if ret := self._require_playing(target, False):
+            return ret
 
         # Register vote
         self.votes[player] = target
@@ -359,9 +373,9 @@ class BinWinState(GameState):
         self.available_balls = list(initial_balls)
         self.available_balls.append(KillerBall())
 
-        self.announce()
+        self._announce()
     
-    def announce(self):
+    def _announce(self):
         self.game.send_channel_message(
             f"{self._get_player().get_name()}, Pick a ball from 1-{len(self.available_balls)} to {self.ACTION_NAMES[self.action]}."
         )
@@ -370,11 +384,11 @@ class BinWinState(GameState):
         return self.game.players[self.player_id]
 
     def on_pick(self, player: Player, ball_id: int) -> StateRet:
-        # Check the player can pick
+        # Check the pick is valid
+        if ret := self._require_playing(player):
+            return ret
         if player != self._get_player():
             return self, "It's not your turn to pick."
-        
-        # Check the ball is valid
         idx = ball_id - 1
         if not (0 <= idx < len(self.available_balls)):
             return self, "That's not a valid ball."
@@ -399,7 +413,7 @@ class BinWinState(GameState):
 
         if len(self.available_balls) > 1:
             # Move to next input
-            self.announce()
+            self._announce()
             return self, message
         else:
             # Move to next round
@@ -422,6 +436,7 @@ class SplitStealState(GameState):
 
         self.actions = {}
 
+        # Calculate total prize
         self.prize = 0
         for ball in initial_balls:
             self.prize = ball.apply(self.prize)
@@ -429,33 +444,37 @@ class SplitStealState(GameState):
         self.game.send_channel_message(f"The final prize money is £{self.prize}. Choose whether to split or steal.")
     
     def handle_action(self, player: Player, action: Action) -> StateRet:
+        # Check action is valid
+        if ret := self._require_playing(player):
+            return ret
         if player in self.actions:
             return self, "You already chose your action."
-        if player.current_game != self.game:
-            return self, "You aren't in this game."
-        
+
+        # Set player's action
         self.actions[player] = action
 
         if len(self.actions) == len(self.game.players):
+            # Determine winnings
             steal_count = countOf(self.actions.values(), self.Action.STEAL)
             if steal_count == 2:
+                self.game.results = {}
                 self.game.send_channel_message(f"Both players stole, the money is lost.")
             elif steal_count == 1:
                 if self.actions[self.game.players[0]] == self.Action.STEAL:
                     winner = self.game.players[0]
                 else:
                     winner = self.game.players[1]
-                
+                self.game.results = {winner : self.prize}
                 self.game.send_channel_message(f"{winner.get_name()} steals all £{self.prize}.")
             else:
                 prize = self.prize // 2
+                self.game.results = {player : prize for player in self.game.players}
                 self.game.send_channel_message(f"Both players split, they get £{prize}.")
             state = FinishedState(self.game)
         else:
             state = self
 
-        return self, "Action chosen."
-            
+        return state, "Action chosen."
 
     def on_split(self, player: Player) -> StateRet:
         return self.handle_action(player, self.Action.SPLIT)
@@ -468,9 +487,11 @@ class FinishedState(GameState):
     def __init__(self, game: "Game"):
         super().__init__(game)
 
+        # Remove all players from the game
         for player in self.game.players:
             self.game.remove_player(player)
 
+        # Flag the game as finished
         self.game.finished = True
 
 
@@ -510,6 +531,8 @@ class Game(Generic[PlayerCtx]):
 
     @staticmethod
     def start_game(host: Player) -> Tuple[Optional["Game"], str]:
+        """Tries to start a game with the host included"""
+
         # Check game can be started
         if host.is_busy():
             return None, "You're already in a game."
@@ -520,64 +543,96 @@ class Game(Generic[PlayerCtx]):
 
         return game, "Game started."
 
-    def get_machine_ball(self) -> Ball:
-        return pop_random(self.machine_balls)
-
     def add_player(self, player: Player):
+        """Adds a player to the game"""
+
         player.current_game = self
         self.players.append(player)
 
     def remove_player(self, player: Player):
+        """Adds a player to the game"""
+
         player.current_game = None
         self.players.remove(player)
 
+    def get_machine_ball(self) -> Ball:
+        """Gets a random ball from the machine"""
+
+        return pop_random(self.machine_balls)
+
     def send_channel_message(self, msg: str):
+        """Sends a broadcast message"""
+
         self.channel_messages.append(msg)
 
-    def has_channel_message(self) -> bool:
-        return len(self.channel_messages) > 0
+    def get_channel_message(self) -> Optional[str]:
+        """Gets a channel message, if any are queued"""
 
-    def get_channel_message(self) -> str:
-        return self.channel_messages.pop(0)
+        if len(self.channel_messages) > 0:
+            return self.channel_messages.pop(0)
+        else:
+            return None
 
     def send_dm(self, player: Player, msg: str):
+        """Sends a personal message to a player"""
+
         self.dms[player].append(msg)
     
     def get_dm_subjects(self) -> Iterable[Player]:
+        """Gets all players who have dms queued"""
+
         return self.dms.keys()
-    
-    def has_dm(self, player: Player) -> bool:
-        return len(self.dms[player]) > 0
-    
-    def get_dm(self, player: Player) -> str:
-        return self.dms[player].pop(0)
+
+    def get_dm(self, player: Player) -> Optional[str]:
+        """Gets a personal message for a player, if any are queued"""
+
+        if len(self.dms[player]) > 0:
+            return self.dms[player].pop(0)
+        else:
+            return None
     
     def is_finished(self) -> bool:
+        """Checks if the game is finised"""
         return self.finished
 
     def get_results(self) -> Dict[Player, int]:
+        """Gets the money given to each plpayer"""
+
+        assert self.is_finished(), f"Can't get results of an unfinished game"
         return self.results
 
     def on_join(self, player: Player) -> str:
+        """Handles a player trying to join the game"""
+
         self.state, response = self.state.on_join(player)
         return response
 
     def on_vote(self, player: Player, target: Player) -> str:
+        """Handles a player trying to vote in the game"""
+
         self.state, response = self.state.on_vote(player, target)
         return response
     
     def on_pick(self, player: Player, ball_id: int) -> str:
+        """Handles a player trying to pick a ball"""
+
         self.state, response = self.state.on_pick(player, ball_id)
         return response
 
     def on_split(self, player: Player) -> str:
+        """Handles a player trying to split the prize"""
+
         self.state, response = self.state.on_split(player)
         return response
 
     def on_steal(self, player: Player) -> str:
+        """Handles a player trying to steal the prize"""
+
         self.state, response = self.state.on_steal(player)
         return response
     
     def on_leave(self, player: Player) -> str:
+        """Handles a player trying to leave the game"""
+
         self.state, response = self.state.on_leave(player)
         return response

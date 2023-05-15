@@ -40,14 +40,13 @@ class GoldenBalls(Cog):
         """Outputs all queued messages to discord"""
 
         # Handle channel messages
-        while game.has_channel_message():
-            await ctx.channel.send(game.get_channel_message())
+        while msg := game.get_channel_message():
+            await ctx.channel.send(msg)
 
         # Handle dms
         for player in game.get_dm_subjects():
-            while game.has_dm(player):
+            while dm := game.get_dm(player):
                 member: Member = player.context
-                dm = game.get_dm(player)
                 try:
                     await member.create_dm()
                     await member.send(dm)
@@ -93,7 +92,7 @@ class GoldenBalls(Cog):
 
         # Try start game
         host = self._get_player(ctx.user)
-        game, message = Game.start_game(host, ctx.channel_id)
+        game, message = Game.start_game(host)
         await ctx.response.send_message(message, ephemeral=(game is None))
         if game is not None:
             self.games[ctx.channel_id] = game
