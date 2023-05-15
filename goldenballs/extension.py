@@ -91,7 +91,7 @@ class GoldenBalls(Cog):
             return
 
         # Try start game
-        host = self._get_player(ctx.user)
+        host = self._get_player(user)
         game, message = Game.start_game(host)
         await ctx.response.send_message(message, ephemeral=(game is None))
         if game is not None:
