@@ -11,19 +11,32 @@ PlayerCtx = TypeVar("PlayerCtx")
 
 
 class Ball(ABC):
+    """Abstract ball class, can be a killer or have a cash value"""
+
     @abstractmethod
     def describe(self) -> str:
+        """Gets the text to describe this ball"""
+
         raise NotImplementedError
 
     @abstractmethod
     def apply(self, current_prize: int) -> int:
+        """Applies the value / effefct of this ball to the prize"""
+
         raise NotImplementedError
 
     @staticmethod
     def describe_list(balls: List["Ball"]) -> str:
+        """Describes a list of balls"""
+
         return ', '.join(ball.describe() for ball in balls)
 
 class KillerBall(Ball):
+    """A ball that divides the prize by 10"""
+
+    def __repr__(self):
+        return "Ball(Killer)"
+
     def describe(self) -> str:
         return "Killer Ball"
     
@@ -31,13 +44,15 @@ class KillerBall(Ball):
         return round(prize / 10)
 
 class CashBall(Ball):
+    # Cash value of this ball
     value: int
 
     def __init__(self, value: int):
         super().__init__()
+
         self.value = value
     
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"Ball({self.value})"
     
     def describe(self) -> str:
@@ -48,6 +63,8 @@ class CashBall(Ball):
 
     @staticmethod
     def generate_pool() -> List["CashBall"]:
+        """Generates the initial pool of 100 cash balls"""
+
         entries = [
             # limit, step
             (    10,    10),
@@ -62,9 +79,8 @@ class CashBall(Ball):
 
         balls = []
         val = 0
-        for entry in entries:
-            limit, step = entry
-            assert (limit - val) % step == 0, f"{entry} won't hit limit from {val}"
+        for limit, step in entries:
+            assert (limit - val) % step == 0, f"Limit {limit} won't hit limit from {val} with step {step}"
             while val < limit:
                 val += step
                 balls.append(CashBall(val))
@@ -252,8 +268,6 @@ class HiddenShownState(GameState):
 
         # Check for all votes being ready
         if len(self.votes) == len(self.game.players):
-            # TODO: handle ties
-            
             # Find who was voted off
             loser = Counter(self.votes.values()).most_common()[0][0]
 
