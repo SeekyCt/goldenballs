@@ -103,7 +103,7 @@ class Player(Generic[PlayerCtx]):
         self.current_game = game
         game.players.append(self)
 
-    def leave_game(self) -> Optional[str]:
+    def leave_game(self) -> str:
         self.current_game.on_leave(self)
 
     def __repr__(self):
@@ -111,7 +111,7 @@ class Player(Generic[PlayerCtx]):
 
 
 # New state, response message
-StateRet = Tuple["GameState", Optional[str]]
+StateRet = Tuple["GameState", str]
 
 
 class GameState(ABC):
@@ -502,7 +502,7 @@ class Game(Generic[PlayerCtx]):
         return f"Game({', '.join(str(player) for player in self.players)})"
 
     @staticmethod
-    def start_game(host: Player) -> Tuple[Optional["Game"], Optional[str]]:
+    def start_game(host: Player) -> Tuple[Optional["Game"], str]:
         # Check game can be started
         if host.is_busy():
             return None, "You're already in a game."
@@ -519,30 +519,6 @@ class Game(Generic[PlayerCtx]):
     def remove_player(self, player: Player):
         player.current_game = None
         self.players.remove(player)
-
-    def on_join(self, player: Player) -> Optional[str]:
-        self.state, response = self.state.on_join(player)
-        return response
-
-    def on_vote(self, player: Player, target: Player) -> Optional[str]:
-        self.state, response = self.state.on_vote(player, target)
-        return response
-    
-    def on_pick(self, player: Player, ball_id: int) -> Optional[str]:
-        self.state, response = self.state.on_pick(player, ball_id)
-        return response
-
-    def on_split(self, player: Player):
-        self.state, response = self.state.on_split(player)
-        return response
-
-    def on_steal(self, player: Player):
-        self.state, response = self.state.on_steal(player)
-        return response
-    
-    def on_leave(self, player: Player):
-        self.state, response = self.state.on_leave(player)
-        return response
 
     def send_channel_message(self, msg: str):
         self.channel_messages.append(msg)
@@ -570,3 +546,27 @@ class Game(Generic[PlayerCtx]):
 
     def get_results(self) -> Dict[Player, int]:
         return self.results
+
+    def on_join(self, player: Player) -> str:
+        self.state, response = self.state.on_join(player)
+        return response
+
+    def on_vote(self, player: Player, target: Player) -> str:
+        self.state, response = self.state.on_vote(player, target)
+        return response
+    
+    def on_pick(self, player: Player, ball_id: int) -> str:
+        self.state, response = self.state.on_pick(player, ball_id)
+        return response
+
+    def on_split(self, player: Player) -> str:
+        self.state, response = self.state.on_split(player)
+        return response
+
+    def on_steal(self, player: Player) -> str:
+        self.state, response = self.state.on_steal(player)
+        return response
+    
+    def on_leave(self, player: Player) -> str:
+        self.state, response = self.state.on_leave(player)
+        return response
