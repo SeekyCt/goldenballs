@@ -169,7 +169,7 @@ class HiddenShownState(GameState):
             ball = pop_random(self.game.machine_balls)
             self.game.active_balls.append(ball)
         for _ in range(new_killer_count):
-            self.game.add_ball(KillerBall())
+            self.game.active_balls.append(KillerBall())
 
         # Assign balls to players
         self.shown_balls = {}
@@ -398,9 +398,6 @@ class Game:
     
     def __str__(self) -> str:
         return f"Game({', '.join(str(player) for player in self.players)})"
-
-    def add_ball(self, ball: Ball):
-        self.active_balls.append(ball)
 
     @staticmethod
     def start_game(host: Player) -> Tuple[Optional["Game"], Optional[str]]:
