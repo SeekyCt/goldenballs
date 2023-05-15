@@ -59,7 +59,7 @@ class GoldenBalls(Cog):
 
         game = self.games.get(ctx.channel_id)
         if game is None:
-            await ctx.response.send_message("Error: there's no game in this channel.")
+            await ctx.response.send_message("Error: there's no game in this channel.", ephemeral=True)
 
         return game
 
@@ -88,13 +88,13 @@ class GoldenBalls(Cog):
 
         # Check if game can be started
         if ctx.channel_id in self.games:
-            await ctx.response.send_message("Error: there's already a game in this channel.")
+            await ctx.response.send_message("Error: there's already a game in this channel.", ephemeral=True)
             return
 
         # Try start game
         host = self._get_player(ctx.user)
         game, message = Game.start_game(host, ctx.channel_id)
-        await ctx.response.send_message(message)
+        await ctx.response.send_message(message, ephemeral=(game is None))
         if game is not None:
             self.games[ctx.channel_id] = game
         await self._handle_game_update(ctx)
@@ -110,13 +110,12 @@ class GoldenBalls(Cog):
         # Check if a game is in this channel
         game = await self._get_game(ctx)
         if game is None:
-            await ctx.response.send_message("Error: there's no game in this channel.")
             return
 
         # Try join game
         player = self._get_player(user)
         msg = game.on_join(player)
-        await ctx.response.send_message(msg)
+        await ctx.response.send_message(msg, ephemeral=(not player.is_busy()))
         await self._handle_game_update(ctx)
 
     @command()
@@ -207,10 +206,13 @@ class GoldenBalls(Cog):
         # Notify game of action
         player = self._get_player(user)
         game = player.current_game
-        msg = player.leave_game()
-        await ctx.response.send_message(msg, ephemeral=True)
-        if game is not None:
-            await self._handle_game_update(ctx)
+        if game is None:
+            await ctx.response.send_message("Error: you're not in a game.")
+            return
+
+        msg = game.on_leave(player)
+        await ctx.response.send_message(msg)
+        await self._handle_game_update(ctx)
 
 
 async def setup(bot: Bot):

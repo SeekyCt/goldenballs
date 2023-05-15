@@ -44,6 +44,8 @@ class KillerBall(Ball):
         return round(prize / 10)
 
 class CashBall(Ball):
+    """A ball that adds cash to the prize"""
+
     # Cash value of this ball
     value: int
 
@@ -85,6 +87,8 @@ class CashBall(Ball):
 
 
 class Player(Generic[PlayerCtx]):
+    """A player, who may exist in a game"""
+
     # Display name of the player
     name: str
 
@@ -100,7 +104,7 @@ class Player(Generic[PlayerCtx]):
         self.context = context
 
     def is_busy(self):
-        """Checks if the player is in a name"""
+        """Checks if the player is in a game"""
 
         return self.current_game is not None
 
@@ -108,13 +112,6 @@ class Player(Generic[PlayerCtx]):
         """Gets the display name for the player"""
 
         return self.name
-
-    def join_game(self, game: "Game"):
-        self.current_game = game
-        game.players.append(self)
-
-    def leave_game(self) -> str:
-        self.current_game.on_leave(self)
 
     def __repr__(self):
         return f"{self.get_name()}[{self.current_game is not None}]"
@@ -160,8 +157,10 @@ class GameState(ABC):
 
         if player not in self.game.players:
             return self, "You're not in this game."
-        
+
         self.game.remove_player(player)
+
+        return self, "You left the game."
 
 
 class WaitingState(GameState):
@@ -175,7 +174,7 @@ class WaitingState(GameState):
             return self, "You're already in a game."
 
         # Add player to game
-        player.join_game(self.game)
+        self.game.add_player(player)
 
         # Start game if enough players are gathered
         if len(self.game.players) == self.PLAYER_COUNT:
@@ -517,13 +516,17 @@ class Game(Generic[PlayerCtx]):
 
         # Create a game with the host playing
         game = Game()
-        host.join_game(game)
+        game.add_player(host)
 
         return game, "Game started."
 
     def get_machine_ball(self) -> Ball:
         return pop_random(self.machine_balls)
-    
+
+    def add_player(self, player: Player):
+        player.current_game = self
+        self.players.append(player)
+
     def remove_player(self, player: Player):
         player.current_game = None
         self.players.remove(player)
