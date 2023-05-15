@@ -383,12 +383,14 @@ class BinWinState(GameState):
             self.action = self.ACTION_BIN
             self.player_id = (self.player_id + 1) % 2
 
-        if len(self.available_balls) > 0:
+        if len(self.available_balls) > 1:
             # Move to next input
             self.announce()
             return self, message
         else:
             # Move to next round
+            binned = self.available_balls.pop()
+            self.game.send_channel_message(f"The last ball binned is the {binned.describe()}")
             self.game.send_channel_message(f"Final balls to win: {Ball.describe_list(self.win_balls)}")
             return SplitStealState(self.game, self.win_balls), message
 
