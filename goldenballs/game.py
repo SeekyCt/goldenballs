@@ -7,7 +7,7 @@ from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, 
 from goldenballs.util import pop_random
 
 
-ContextType = TypeVar("ContextType")
+PlayerCtx = TypeVar("PlayerCtx")
 
 
 class Ball(ABC):
@@ -74,7 +74,7 @@ class CashBall(Ball):
         return balls
 
 
-class Player(Generic[ContextType]):
+class Player(Generic[PlayerCtx]):
     # Display name of the player
     name: str
 
@@ -82,9 +82,9 @@ class Player(Generic[ContextType]):
     current_game: Optional["Game"]
 
     # User code context for this player
-    context: ContextType
+    context: PlayerCtx
 
-    def __init__(self, name: str, context: ContextType = None):
+    def __init__(self, name: str, context: PlayerCtx = None):
         self.name = name
         self.current_game = None
         self.context = context
@@ -103,9 +103,8 @@ class Player(Generic[ContextType]):
         self.current_game = game
         game.players.append(self)
 
-    def leave_game(self, game: "Game"):
-        self.current_game = None
-        game.players.remove(self)
+    def leave_game(self) -> Optional[str]:
+        self.current_game.on_leave(self)
 
     def __repr__(self):
         return f"{self.get_name()}[{self.current_game is not None}]"
@@ -145,6 +144,14 @@ class GameState(ABC):
         """Update function for when a player tries to steal"""
 
         return self, "The game is not in the split/steal stage"
+    
+    def on_leave(self, player: Player) -> StateRet:
+        """Update function for when a player tries to leave"""
+
+        if player not in self.game.players:
+            return self, "You're not in this game."
+        
+        self.game.remove_player(player)
 
 
 class WaitingState(GameState):
@@ -270,7 +277,7 @@ class HiddenShownState(GameState):
             )))
 
             # Remove the loser
-            loser.leave_game(self.game)
+            self.game.remove_player(loser)
 
             # Build new ball list
             balls = []
@@ -453,20 +460,34 @@ class SplitStealState(GameState):
 class FinishedState(GameState):
     def __init__(self, game: "Game"):
         super().__init__(game)
+
+        for player in self.game.players:
+            self.game.remove_player(player)
+
         self.game.finished = True
 
 
-class Game:
-    players: List[Player]
+class Game(Generic[PlayerCtx]):
+    # Current state of the game
     state: GameState
+
+    # Players currently in the game
+    players: List[Player[PlayerCtx]]
+
+    # Queued messages to broadcast
     channel_messages: List[str]
-    dms: DefaultDict[Player, List[str]]
+
+    # Queued messages to send personally
+    dms: DefaultDict[Player[PlayerCtx], List[str]]
 
     # The pool of balls in the machine
     machine_balls: List[CashBall]
 
+    # Whether the game is over
     finished: bool
-    results: Dict[Player, int]
+
+    # The results of the game, if finished
+    results: Dict[Player[PlayerCtx], int]
 
     def __init__(self):
         self.players = []
@@ -494,6 +515,10 @@ class Game:
 
     def get_machine_ball(self) -> Ball:
         return pop_random(self.machine_balls)
+    
+    def remove_player(self, player: Player):
+        player.current_game = None
+        self.players.remove(player)
 
     def on_join(self, player: Player) -> Optional[str]:
         self.state, response = self.state.on_join(player)
@@ -513,6 +538,10 @@ class Game:
 
     def on_steal(self, player: Player):
         self.state, response = self.state.on_steal(player)
+        return response
+    
+    def on_leave(self, player: Player):
+        self.state, response = self.state.on_leave(player)
         return response
 
     def send_channel_message(self, msg: str):
