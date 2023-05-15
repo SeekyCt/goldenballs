@@ -81,11 +81,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.start.description"))
     @guild_only()
-    async def start(self, ctx: Interaction, user: Member = None):
+    async def start(self, ctx: Interaction):
         """Starts a game in a channel, if it's free"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if game can be started
         if ctx.channel_id in self.games:
@@ -102,11 +102,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.join.description"))
     @guild_only()
-    async def join(self, ctx: Interaction, user: Member = None):
+    async def join(self, ctx: Interaction):
         """Joins the game in the channel, if it exists and the user is free"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if a game is in this channel
         game = await self._get_game(ctx)
@@ -121,11 +121,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.vote.description"))
     @guild_only()
-    async def vote(self, ctx: Interaction, target: Member, user: Member = None):
+    async def vote(self, ctx: Interaction, target: Member):
         """Round 1 & 2 - votes for the player to remove"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if a game is in this channel
         game = await self._get_game(ctx)
@@ -145,7 +145,7 @@ class GoldenBalls(Cog):
         """Round 1 & 2 - view your hidden balls"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if a game is in this channel
         game = await self._get_game(ctx)
@@ -160,11 +160,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.pick.description"))
     @guild_only()
-    async def pick(self, ctx: Interaction, ball_id: int, user: Member = None):
+    async def pick(self, ctx: Interaction, ball_id: int):
         """Round 3 - picks a ball"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if a game is in this channel
         game = await self._get_game(ctx)
@@ -179,11 +179,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.split.description"))
     @guild_only()
-    async def split(self, ctx: Interaction, user: Member = None):
+    async def split(self, ctx: Interaction):
         """Round 4 - chooses to split the prize"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if a game is in this channel
         game = await self._get_game(ctx)
@@ -198,11 +198,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.steal.description"))
     @guild_only()
-    async def steal(self, ctx: Interaction, user: Member = None):
+    async def steal(self, ctx: Interaction):
         """Round 4 - chooses to steal the prize"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Check if a game is in this channel
         game = await self._get_game(ctx)
@@ -217,11 +217,11 @@ class GoldenBalls(Cog):
 
     @command(description=get_msg("command.leave.description"))
     @guild_only()
-    async def leave(self, ctx: Interaction, user: Member = None):
+    async def leave(self, ctx: Interaction):
         """Leaves your current game, if in one"""
 
         # Get target user
-        user = user or ctx.user
+        user = ctx.user
 
         # Notify game of action
         player = self._get_player(user)
