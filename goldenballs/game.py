@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from enum import Enum
-from typing import Callable, DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
+from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
 from goldenballs.util import pop_random
 
@@ -322,16 +322,13 @@ class BinWinState(GameState):
         self.player_id = 0
         self.win_balls = []
         self.available_balls = list(initial_balls)
+        self.available_balls.append(KillerBall())
 
         self.announce()
     
     def announce(self):
-        if len(self.win_balls) > 0:
-            self.game.send_channel_message(
-                f"Balls to win so far: {Ball.describe_list(self.win_balls)}"
-            )
         self.game.send_channel_message(
-            f"Pick a ball from 1-{len(self.available_balls)} to {self.ACTION_NAMES[self.action]}."
+            f"{self._get_player().get_name()}, Pick a ball from 1-{len(self.available_balls)} to {self.ACTION_NAMES[self.action]}."
         )
 
     def _get_player(self):
@@ -351,6 +348,9 @@ class BinWinState(GameState):
         ball = self.available_balls.pop(idx)
         if self.action == self.ACTION_WIN:
             self.win_balls.append(ball)
+            self.game.send_channel_message(
+                f"Balls to win so far: {Ball.describe_list(self.win_balls)}"
+            )
 
         # Set message
         message = f"{player.get_name()} {self.ACTION_NAMES[self.action]}s the {ball.describe()}"
@@ -363,11 +363,14 @@ class BinWinState(GameState):
             self.player_id = (self.player_id + 1) % 2
 
         if len(self.available_balls) > 0:
+            # Move to next input
             self.announce()
             return self, message
         else:
+            # Move to next round
             self.game.send_channel_message(f"Final balls to win: {Ball.describe_list(self.win_balls)}")
             return SplitStealState(self.game, self.win_balls), message
+
 
 class SplitStealState(GameState):
     def __init__(self, game: "Game", initial_balls: Iterable[Ball]):
