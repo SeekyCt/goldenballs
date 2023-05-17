@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from enum import Enum, IntEnum
 from operator import countOf
+from random import shuffle
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
 from goldenballs.messages import get_msg
@@ -436,6 +437,7 @@ class BinWinState(GameState):
         self.player_id = 0
         self.win_balls = []
         self.available_balls = list(initial_balls)
+        shuffle(self.available_balls)
         self.available_balls.append(KillerBall())
 
         self._announce()
