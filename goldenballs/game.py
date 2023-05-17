@@ -543,6 +543,7 @@ class SplitStealState(GameState):
 
         # Set player's action
         self.actions[player] = action
+        self.game._send_channel_message(get_msg("round4.action", name=player.get_name()))
 
         if len(self.actions) == len(self.game.players):
             state = self._finish_game()

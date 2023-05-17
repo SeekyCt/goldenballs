@@ -68,6 +68,7 @@ MESSAGES = {
     "round3.final_win" : "Final balls to win: {balls}",
 
     "round4.announce" : "The final prize money is £{prize}. Choose whether to /split or /steal.",
+    "round4.action" : "{name} has chosen their action.",
     "round4.lose" : "Both players stole, the money is lost.",
     "round4.steal" : "{winner} steals all £{prize}.",
     "round4.split" : "Both players split, they get £{prize}.",
