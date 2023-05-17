@@ -11,7 +11,7 @@ MESSAGES = {
     # game.py
 
     "ball.killer" : "Killer Ball",
-    "ball.cash" : "£{value} Ball",
+    "ball.cash" : "£{value:,} Ball",
     "ball.err.invalid" : "That's not a valid ball.",
 
     "player.ball_list" : "    {name} - {balls}",
@@ -67,12 +67,12 @@ MESSAGES = {
     "round3.final_bin" : "The last balled binned is the {ball}",
     "round3.final_win" : "Final balls to win: {balls}",
 
-    "round4.announce" : "The final prize money is £{prize}. Choose whether to /split or /steal.",
+    "round4.announce" : "The final prize money is £{prize:,}. Choose whether to /split or /steal.",
     "round4.action" : "{name} has chosen their action.",
     "round4.lose" : "Both players stole, the money is lost.",
-    "round4.steal" : "{winner} steals all £{prize}.",
-    "round4.split" : "Both players split, they get £{prize}.",
-    "round4.only_player" : "{winner} wins all £{prize}.",
+    "round4.steal" : "{winner} steals all £{prize:,}.",
+    "round4.split" : "Both players split, they get £{prize:,}.",
+    "round4.only_player" : "{winner} wins all £{prize:,}.",
     "round4.action_response" : "Action chosen.",
 }
 
