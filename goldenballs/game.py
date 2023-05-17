@@ -135,7 +135,7 @@ class GameState(ABC):
         """Returns an error if the player is not playing"""
 
         if player.current_game != self.game:
-            msg = "err.game.player.not_in.youre" if you else "err.game.player.not_in"
+            msg = "player.err.not_in_game" if you else "player.err.not_in_game.other"
             return self, get_msg(msg, name=player.get_name())
         else:
             return None
@@ -143,32 +143,32 @@ class GameState(ABC):
     def on_join(self, player: Player) -> StateRet:
         """Update function for when a player tries to join"""
 
-        return self, get_msg("err.game.not_joinable")
+        return self, get_msg("game.err.not_joinable")
 
     def on_vote(self, player: Player, target: Player) -> StateRet:
         """Update function for when a player tries to vote"""
 
-        return self, get_msg("err.game.not_votable")
+        return self, get_msg("game.err.not_votable")
 
     def on_view_balls(self, player: Player) -> StateRet:
         """Update function for when a player tries to view their hidden balls"""
 
-        return self, get_msg("err.game.not_viewable")
+        return self, get_msg("game.err.not_viewable")
 
     def on_pick(self, player: Player, ball_id: int) -> StateRet:
         """Update function for when a player tries to pick a ball"""
 
-        return self, get_msg("err.game.not_pickable")
+        return self, get_msg("game.err.not_pickable")
     
     def on_split(self, player: Player) -> StateRet:
         """Update function for when a player tries to split"""
 
-        return self, get_msg("err.game.not_split_steal")
+        return self, get_msg("game.err.not_split_steal")
     
     def on_steal(self, player: Player) -> StateRet:
         """Update function for when a player tries to steal"""
 
-        return self, get_msg("err.game.not_split_steal")
+        return self, get_msg("game.err.not_split_steal")
     
     def on_leave(self, player: Player) -> StateRet:
         """Update function for when a player tries to leave"""
@@ -191,9 +191,9 @@ class WaitingState(GameState):
     def on_join(self, player: Player) -> StateRet:
         # Check player can join
         if player in self.game.players:
-            return self, get_msg("err.game.player_in")
+            return self, get_msg("player.err.in_game")
         if player.is_busy():
-            return self, get_msg("err.game.player_in.other")
+            return self, get_msg("player.err.in_other_game")
 
         # Add player to game
         self.game.add_player(player)
@@ -272,9 +272,9 @@ class HiddenShownState(GameState):
     def on_vote(self, player: Player, target: Player) -> StateRet:
         # Check the vote is valid
         if player in self.votes:
-            return self, get_msg("err.player.voted")
+            return self, get_msg("player.err.voted")
         if player == target:
-            return self, get_msg("err.player.vote_self")
+            return self, get_msg("player.err.vote_self")
         if ret := self._require_playing(player):
             return ret
         if ret := self._require_playing(target, False):
@@ -410,10 +410,10 @@ class BinWinState(GameState):
         if ret := self._require_playing(player):
             return ret
         if player != self._get_player():
-            return self, get_msg("err.game.player_not_picking")
+            return self, get_msg("player.err.not_picking")
         idx = ball_id - 1
         if not (0 <= idx < len(self.available_balls)):
-            return self, get_msg("err.game.invalid_ball")
+            return self, get_msg("ball.err.invalid")
         
         # Remove the ball from the pool
         ball = self.available_balls.pop(idx)
@@ -481,7 +481,7 @@ class SplitStealState(GameState):
         if ret := self._require_playing(player):
             return ret
         if player in self.actions:
-            return self, get_msg("err.player.action_done")
+            return self, get_msg("player.err.action_done")
 
         # Set player's action
         self.actions[player] = action
@@ -572,7 +572,7 @@ class Game(Generic[PlayerCtx]):
 
         # Check game can be started
         if host.is_busy():
-            return None, get_msg("err.game.player_in.other")
+            return None, get_msg("player.err.in_other_game")
 
         # Create a game with the host playing
         game = Game()

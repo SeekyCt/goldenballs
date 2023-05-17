@@ -1,40 +1,38 @@
 MESSAGES = {
     # extension.py
 
-    "err.dm.fail" : "Error sending dm to {name}: {exception}",
+    "dm.err.fail" : "Error sending dm to {name}: {exception}",
 
-    "err.channel.no_game" : "Error: there's no game in this channel.",
-    "err.channel.game" : "Error: there's already a game in this channel.",
+    "channel.err.no_game" : "Error: there's no game in this channel.",
+    "channel.err.game" : "Error: there's already a game in this channel.",
 
-    "err.user.no_game" : "Error: you're not in a game.",
+    "user.err.no_game" : "Error: you're not in a game.",
 
     # game.py
 
     "ball.killer" : "Killer Ball",
     "ball.cash" : "£{value} Ball",
+    "ball.err.invalid" : "That's not a valid ball.",
 
-    # TODO: -> err.player
-    "err.game.player_in" : "You're already in this game,",
-    "err.game.player_in.other" : "You're already in another game.",
-    "err.game.player_not_in" : "{name} is not in this game.",
-    "err.game.player_not_in.youre" : "You're not in this game.",
-    "err.game.player_not_picking" : "It's not your turn to pick",
-    "err.game.invalid_ball" : "That's not a valid ball.",
-
-    "err.game.not_joinable" : "The game is not joinable.",
-    "err.game.not_votable" : "The game is not in the voting stage.",
-    "err.game.not_viewable" : "You don't have any hidden balls to view.",
-    "err.game.not_pickable" : "The game is not in the picking stage.",
-    "err.game.not_split_steal" : "The game is not in the split/steal stage.",
-
-    "err.player.voted" : "You already voted.",
-    "err.player.vote_self" : "You can't vote for yourself.",
-    "err.player.action_done" : "You already chose your action.",
+    "player.ball_list" : "    {name} - {balls}",
+    "player.err.in_game" : "You're already in this game,",
+    "player.err.in_other_game" : "You're already in another game.",
+    "player.err.not_in_game" : "You're not in this game.",
+    "player.err.not_in_game.other" : "{name} is not in this game.",
+    "player.err.not_picking" : "It's not your turn to pick",
+    "player.err.voted" : "You already voted.",
+    "player.err.vote_self" : "You can't vote for yourself.",
+    "player.err.action_done" : "You already chose your action.",
 
     "game.join" : "You joined the game.",
     "game.left" : "You left the game.",
     "game.start_response" : "Game started.",
     "game.start" : "Game starting with {players}",
+    "game.err.not_joinable" : "The game is not joinable.",
+    "game.err.not_votable" : "The game is not in the voting stage.",
+    "game.err.not_viewable" : "You don't have any hidden balls to view.",
+    "game.err.not_pickable" : "The game is not in the picking stage.",
+    "game.err.not_split_steal" : "The game is not in the split/steal stage.",
     
     "round1_2.announce" : '\n'.join((
         "Everyone has been given {total} balls, {hidden} hidden and {shown} shown.",
@@ -68,8 +66,6 @@ MESSAGES = {
     "round4.steal" : "{winner} steals all £{prize}.",
     "round4.split" : "Both players split, they get £{prize}.",
     "round4.action_response" : "Action chosen.",
-
-    "player.ball_list" : "    {name} - {balls}",
 }
 
 def get_msg(message_id: str, **kwargs) -> str:

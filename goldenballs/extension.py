@@ -52,14 +52,14 @@ class GoldenBalls(Cog):
                     await member.create_dm()
                     await member.send(dm)
                 except HTTPException as e:
-                    await ctx.channel.send(get_msg("err.dm.fail", name=player.get_name(), exception=e))
+                    await ctx.channel.send(get_msg("dm.err.fail", name=player.get_name(), exception=e))
 
     async def _get_game(self, ctx: Interaction) -> Optional[GBGame]:
         """Gets the game for an interaction, if it exists"""
 
         game = self.games.get(ctx.channel_id)
         if game is None:
-            await ctx.response.send_message(get_msg("err.channel.no_game"), ephemeral=True)
+            await ctx.response.send_message(get_msg("channel.err.no_game"), ephemeral=True)
 
         return game
 
@@ -88,7 +88,7 @@ class GoldenBalls(Cog):
 
         # Check if game can be started
         if ctx.channel_id in self.games:
-            await ctx.response.send_message(get_msg("err.channel.game"), ephemeral=True)
+            await ctx.response.send_message(get_msg("channel.err.game"), ephemeral=True)
             return
 
         # Try start game
@@ -226,7 +226,7 @@ class GoldenBalls(Cog):
         player = self._get_player(user)
         game = player.current_game
         if game is None:
-            await ctx.response.send_message(get_msg("err.user.no_game"))
+            await ctx.response.send_message(get_msg("user.err.no_game"))
             return
 
         msg = game.on_leave(player)
