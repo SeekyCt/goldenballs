@@ -5,7 +5,6 @@ from operator import countOf
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
 from goldenballs.messages import get_msg
-
 from goldenballs.util import pop_random
 
 
@@ -178,7 +177,7 @@ class GameState(ABC):
             return ret
 
         # Remove the player
-        self.game.remove_player(player)
+        self.game._remove_player(player)
 
         return self, get_msg("game.left")
 
@@ -196,11 +195,11 @@ class WaitingState(GameState):
             return self, get_msg("player.err.in_other_game")
 
         # Add player to game
-        self.game.add_player(player)
+        self.game._add_player(player)
 
         # Start game if enough players are gathered
         if len(self.game.players) == self.PLAYER_COUNT:
-            self.game.send_channel_message(
+            self.game._send_channel_message(
                 get_msg("game.start", players=', '.join(player.get_name() for player in self.game.players))
             )
             state = FourPlayerState(self.game)
@@ -226,7 +225,7 @@ class HiddenShownState(GameState):
         # Setup the initial balls
         balls = list(initial_balls)
         for _ in range(new_cash_ball_count):
-            balls.append(self.game.get_machine_ball())
+            balls.append(self.game._get_machine_ball())
         for _ in range(new_killer_count):
             balls.append(KillerBall())
         assert len(balls) == (shown_count + hidden_count) * len(self.game.players)
@@ -245,7 +244,7 @@ class HiddenShownState(GameState):
             ]
 
         # Announce the shown balls
-        self.game.send_channel_message(
+        self.game._send_channel_message(
             get_msg(
                 "round1_2.announce",
                 total=shown_count + hidden_count,
@@ -264,7 +263,7 @@ class HiddenShownState(GameState):
 
         # Send players their hidden balls
         for player in self.game.players:
-            self.game.send_dm(player, get_msg("round1_2.hidden", balls=Ball.describe_list(self.hidden_balls[player])))
+            self.game._send_dm(player, get_msg("round1_2.hidden", balls=Ball.describe_list(self.hidden_balls[player])))
 
         # Init votes
         self.votes = {}
@@ -284,7 +283,7 @@ class HiddenShownState(GameState):
         self.votes[player] = target
 
         # Announce vote
-        self.game.send_channel_message(get_msg("round1_2.voted", name=player.get_name()))
+        self.game._send_channel_message(get_msg("round1_2.voted", name=player.get_name()))
 
         # Check for all votes being ready
         if len(self.votes) == len(self.game.players):
@@ -292,7 +291,7 @@ class HiddenShownState(GameState):
             loser = Counter(self.votes.values()).most_common()[0][0]
 
             # Announce the votes
-            self.game.send_channel_message(
+            self.game._send_channel_message(
                 get_msg(
                     "round1_2.done",
                     votes='\n'.join(
@@ -312,7 +311,7 @@ class HiddenShownState(GameState):
             )
 
             # Remove the loser
-            self.game.remove_player(loser)
+            self.game._remove_player(loser)
 
             # Build new ball list
             balls = []
@@ -405,7 +404,7 @@ class BinWinState(GameState):
         self._announce()
     
     def _announce(self):
-        self.game.send_channel_message(
+        self.game._send_channel_message(
             get_msg(
                 self.action.pick_msg(),
                 name=self._get_player().get_name(),
@@ -430,7 +429,7 @@ class BinWinState(GameState):
         ball = self.available_balls.pop(idx)
         if self.action == self.Action.WIN:
             self.win_balls.append(ball)
-            self.game.send_channel_message(
+            self.game._send_channel_message(
                 get_msg(
                     "round3.win_so_far",
                     balls=Ball.describe_list(self.win_balls)
@@ -458,10 +457,10 @@ class BinWinState(GameState):
         else:
             # Move to next round
             binned = self.available_balls.pop()
-            self.game.send_channel_message(
+            self.game._send_channel_message(
                 get_msg("round3.final_bin", ball=binned.describe())
             )
-            self.game.send_channel_message(
+            self.game._send_channel_message(
                 get_msg("round3.final_win", balls=Ball.describe_list(self.win_balls))
             )
             return SplitStealState(self.game, self.win_balls), message
@@ -485,9 +484,9 @@ class SplitStealState(GameState):
         for ball in initial_balls:
             self.prize = ball.apply(self.prize)
         
-        self.game.send_channel_message(get_msg("round4.announce", prize=self.prize))
+        self.game._send_channel_message(get_msg("round4.announce", prize=self.prize))
  
-    def handle_action(self, player: Player, action: Action) -> StateRet:
+    def _handle_action(self, player: Player, action: Action) -> StateRet:
         # Check action is valid
         if ret := self._require_playing(player):
             return ret
@@ -502,20 +501,20 @@ class SplitStealState(GameState):
             steal_count = countOf(self.actions.values(), self.Action.STEAL)
             if steal_count == 2:
                 self.game.results = {}
-                self.game.send_channel_message(get_msg("round4.lose"))
+                self.game._send_channel_message(get_msg("round4.lose"))
             elif steal_count == 1:
                 if self.actions[self.game.players[0]] == self.Action.STEAL:
                     winner = self.game.players[0]
                 else:
                     winner = self.game.players[1]
                 self.game.results = {winner : self.prize}
-                self.game.send_channel_message(
+                self.game._send_channel_message(
                     get_msg("round4.split", winner=winner.get_name(), prize=self.prize)
                 )
             else:
                 prize = self.prize // 2
                 self.game.results = {player : prize for player in self.game.players}
-                self.game.send_channel_message(
+                self.game._send_channel_message(
                     get_msg("round4.split", prize=self.prize)
                 )
             state = FinishedState(self.game)
@@ -525,10 +524,10 @@ class SplitStealState(GameState):
         return state, get_msg("round4.action_response")
 
     def on_split(self, player: Player) -> StateRet:
-        return self.handle_action(player, self.Action.SPLIT)
+        return self._handle_action(player, self.Action.SPLIT)
 
     def on_steal(self, player: Player) -> StateRet:
-        return self.handle_action(player, self.Action.STEAL)
+        return self._handle_action(player, self.Action.STEAL)
 
 
 class FinishedState(GameState):
@@ -537,7 +536,7 @@ class FinishedState(GameState):
 
         # Remove all players from the game
         for player in self.game.players:
-            self.game.remove_player(player)
+            self.game._remove_player(player)
 
         # Flag the game as finished
         self.game.finished = True
@@ -587,28 +586,28 @@ class Game(Generic[PlayerCtx]):
 
         # Create a game with the host playing
         game = Game()
-        game.add_player(host)
+        game._add_player(host)
 
         return game, get_msg("game.start_response")
 
-    def add_player(self, player: Player):
+    def _add_player(self, player: Player):
         """Adds a player to the game"""
 
         player.current_game = self
         self.players.append(player)
 
-    def remove_player(self, player: Player):
+    def _remove_player(self, player: Player):
         """Adds a player to the game"""
 
         player.current_game = None
         self.players.remove(player)
 
-    def get_machine_ball(self) -> Ball:
+    def _get_machine_ball(self) -> Ball:
         """Gets a random ball from the machine"""
 
         return pop_random(self.machine_balls)
 
-    def send_channel_message(self, msg: str):
+    def _send_channel_message(self, msg: str):
         """Sends a broadcast message"""
 
         self.channel_messages.append(msg)
@@ -621,7 +620,7 @@ class Game(Generic[PlayerCtx]):
         else:
             return None
 
-    def send_dm(self, player: Player, msg: str):
+    def _send_dm(self, player: Player, msg: str):
         """Sends a personal message to a player"""
 
         self.dms[player].append(msg)

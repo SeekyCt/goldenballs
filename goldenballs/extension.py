@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+
 from discord import HTTPException, Interaction, Member
 from discord.app_commands import command, guild_only
 from discord.ext.commands import Bot, Cog
@@ -37,7 +38,7 @@ class GoldenBalls(Cog):
 
         return self.players[member.id]
 
-    async def flush_message_queue(self, ctx: Interaction, game: GBGame):
+    async def _flush_message_queue(self, ctx: Interaction, game: GBGame):
         """Outputs all queued messages to discord"""
 
         # Handle channel messages
@@ -72,7 +73,7 @@ class GoldenBalls(Cog):
             return
 
         # Output queued messages
-        await self.flush_message_queue(ctx, game)
+        await self._flush_message_queue(ctx, game)
 
         # Remove game if finished
         if game.is_finished():
