@@ -485,7 +485,7 @@ class BinWinState(GameState):
             self.action = self.Action.WIN
         else:
             self.action = self.Action.BIN
-            self.player_id = (self.player_id + 1) % 2
+            self.player_id = (self.player_id + 1) % len(self.game.players)
 
         if len(self.available_balls) > 1:
             # Move to next input
