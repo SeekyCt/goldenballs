@@ -501,6 +501,17 @@ class BinWinState(GameState):
                 get_msg("round3.final_win", balls=Ball.describe_list(self.win_balls))
             )
             return SplitStealState(self.game, self.win_balls), message
+    
+    def on_leave(self, player: Player) -> StateRet:
+        before = len(self.game.players)
+        idx = self.game.players.index(player)
+        ret = super().on_leave(player)
+
+        if before != len(self.game.players) and idx == self.player_id:
+            self.player_id = 0
+            self._announce()
+
+        return ret
 
 
 class SplitStealState(GameState):
