@@ -71,6 +71,7 @@ MESSAGES = {
     "round4.lose" : "Both players stole, the money is lost.",
     "round4.steal" : "{winner} steals all £{prize}.",
     "round4.split" : "Both players split, they get £{prize}.",
+    "round4.only_player" : "{winner} wins all £{prize}.",
     "round4.action_response" : "Action chosen.",
 }
 

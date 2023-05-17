@@ -534,7 +534,21 @@ class SplitStealState(GameState):
         self.actions[player] = action
 
         if len(self.actions) == len(self.game.players):
-            # Determine winnings
+            state = self._finish_game()
+        else:
+            state = self
+
+        return state, get_msg("round4.action_response")
+
+    def _finish_game(self) -> GameState:
+        # Determine winnings
+        if len(self.game.players) == 1:
+            winner = self.game.players[0]
+            self.game.results = {winner : self.prize}
+            self.game._send_channel_message(
+                get_msg("round4.only_player", winner=winner.get_name(), prize=self.prize)
+            )
+        else:
             steal_count = countOf(self.actions.values(), self.Action.STEAL)
             if steal_count == 2:
                 self.game.results = {}
@@ -554,17 +568,22 @@ class SplitStealState(GameState):
                 self.game._send_channel_message(
                     get_msg("round4.split", prize=self.prize)
                 )
-            state = FinishedState(self.game)
-        else:
-            state = self
 
-        return state, get_msg("round4.action_response")
+        return FinishedState(self.game)
 
     def on_split(self, player: Player) -> StateRet:
         return self._handle_action(player, self.Action.SPLIT)
 
     def on_steal(self, player: Player) -> StateRet:
         return self._handle_action(player, self.Action.STEAL)
+    
+    def on_leave(self, player: Player) -> StateRet:
+        state, msg = super().on_leave(player)
+
+        if len(self.game.players) == 1:
+            state = self._finish_game()
+
+        return state, msg
 
 
 class FinishedState(GameState):
