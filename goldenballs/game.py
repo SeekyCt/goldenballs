@@ -179,6 +179,13 @@ class GameState(ABC):
         # Remove the player
         self.game._remove_player(player)
 
+        # Cancel the game if no players are left
+        if len(self.game.players) == 0:
+            self.game._send_channel_message(get_msg("game.cancelled"))
+            state = FinishedState(self.game)
+        else:
+            state = self
+
         return self, get_msg("game.left")
 
 
@@ -207,7 +214,7 @@ class WaitingState(GameState):
             state = self
 
         return state, get_msg("game.join")
-
+    
 
 class HiddenShownState(GameState):
     shown_balls: Dict[Player, List[Ball]]

@@ -28,6 +28,7 @@ MESSAGES = {
     "game.left" : "You left the game.",
     "game.start_response" : "Game started.",
     "game.start" : "Game starting with {players}",
+    "game.cancelled" : "All players have left, game cancelled.",
     "game.err.not_joinable" : "The game is not joinable.",
     "game.err.not_votable" : "The game is not in the voting stage.",
     "game.err.not_viewable" : "You don't have any hidden balls to view.",
