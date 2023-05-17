@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
-from enum import Enum
+from enum import Enum, IntEnum
 from operator import countOf
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
 
@@ -372,12 +372,23 @@ class ThreePlayerState(HiddenShownState):
 
 
 class BinWinState(GameState):
-    ACTION_BIN = 0
-    ACTION_WIN = 1
-    ACTION_PICK = ["round3.pick.bin", "round3.pick.bin"]
-    ACTION_PICKED = ["round3.picked.bin", "round3.picked.win"]
+    class Action(IntEnum):
+        BIN = 0
+        WIN = 1
 
-    action: int
+        def pick_msg(self):
+            return [
+                "round3.pick.bin",
+                "round3.pick.win"
+            ][self]
+        
+        def picked_msg(self):
+            return [
+                "round3.picked.bin",
+                "round3.picked.win"
+            ][self]
+
+    action: Action
     player_id: int
     win_balls: List[Ball]
     available_balls: List[Ball]
@@ -385,7 +396,7 @@ class BinWinState(GameState):
     def __init__(self, game: "Game", initial_balls: List[Ball]):
         super().__init__(game)
 
-        self.action = self.ACTION_BIN
+        self.action = self.Action.BIN
         self.player_id = 0
         self.win_balls = []
         self.available_balls = list(initial_balls)
@@ -396,7 +407,7 @@ class BinWinState(GameState):
     def _announce(self):
         self.game.send_channel_message(
             get_msg(
-                self.ACTION_PICK[self.action],
+                self.action.pick_msg(),
                 name=self._get_player().get_name(),
                 max=len(self.available_balls),
             )
@@ -417,7 +428,7 @@ class BinWinState(GameState):
         
         # Remove the ball from the pool
         ball = self.available_balls.pop(idx)
-        if self.action == self.ACTION_WIN:
+        if self.action == self.Action.WIN:
             self.win_balls.append(ball)
             self.game.send_channel_message(
                 get_msg(
@@ -428,16 +439,16 @@ class BinWinState(GameState):
 
         # Set message
         message = get_msg(
-            self.ACTION_PICKED[self.action],
+            self.action.picked_msg(),
             name=player.get_name(),
             ball=ball.describe(),
         )
 
         # Move to next action
-        if self.action == self.ACTION_BIN:
-            self.action = self.ACTION_WIN
+        if self.action == self.Action.BIN:
+            self.action = self.Action.WIN
         else:
-            self.action = self.ACTION_BIN
+            self.action = self.Action.BIN
             self.player_id = (self.player_id + 1) % 2
 
         if len(self.available_balls) > 1:
