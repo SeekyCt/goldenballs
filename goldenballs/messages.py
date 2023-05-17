@@ -52,6 +52,11 @@ MESSAGES = {
         "The hidden balls were:",
         "{hidden}",
     )),
+    "round1_2.done_early" : '\n'.join((
+        "{loser} left early, moving to the next round.",
+        "The hidden balls were:",
+        "{hidden}",
+    )),
 
     "round3.pick.win" : "{name}, pick a ball from 1-{max} to win.",
     "round3.pick.bin" : "{name}, pick a ball from 1-{max} to bin.",

@@ -268,6 +268,21 @@ class HiddenShownState(GameState):
         # Init votes
         self.votes = {}
 
+    def _start_next(self, loser: Player) -> GameState:
+        # Remove the loser
+        self.game._remove_player(loser)
+
+        # Build new ball list
+        balls = []
+        for player in self.game.players:
+            for ball in self.shown_balls[player]:
+                balls.append(ball)
+            for ball in self.hidden_balls[player]:
+                balls.append(ball)
+
+        # Move to next state
+        return self.next_state(self.game, balls)
+
     def on_vote(self, player: Player, target: Player) -> StateRet:
         # Check the vote is valid
         if player in self.votes:
@@ -310,19 +325,8 @@ class HiddenShownState(GameState):
                 )
             )
 
-            # Remove the loser
-            self.game._remove_player(loser)
-
-            # Build new ball list
-            balls = []
-            for player in self.game.players:
-                for ball in self.shown_balls[player]:
-                    balls.append(ball)
-                for ball in self.hidden_balls[player]:
-                    balls.append(ball)
-
             # Move to next state
-            state = self.next_state(self.game, balls)
+            state = self._start_next(loser)
         else:
             state = self
 
@@ -330,6 +334,32 @@ class HiddenShownState(GameState):
     
     def on_view_balls(self, player: Player) -> StateRet:
         return self, get_msg("round1_2.hidden", balls=Ball.describe_list(self.hidden_balls[player]))
+    
+    def on_leave(self, player: Player) -> StateRet:
+        # Check player is in the game
+        if ret := self._require_playing(player):
+            return ret
+
+        # Announce the round ending
+        self.game._send_channel_message(
+            get_msg(
+                "round1_2.done_early",
+                loser=player.get_name(),
+                hidden='\n'.join(
+                    get_msg(
+                        "player.ball_list",
+                        name=player.get_name(),
+                        balls=Ball.describe_list(self.hidden_balls[player])
+                    )
+                    for player in self.game.players
+                ),
+            )
+        )        
+
+        # Remove player and move to next state
+        state = self._start_next(player)
+
+        return state, get_msg("game.left")
 
 
 class FourPlayerState(HiddenShownState):
