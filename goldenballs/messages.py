@@ -16,6 +16,7 @@ MESSAGES = {
     "command.split.description" : "Split or Steal - split the money.",
     "command.steal.description" : "Split or Steal - steal the money.",
     "command.leave.description" : "Leave the game.",
+    "command.kick.description" : "Server admin - removes a player from the game in the channel.",
 
     # game.py
 
@@ -35,6 +36,7 @@ MESSAGES = {
 
     "game.join" : "You joined the game.",
     "game.left" : "You left the game.",
+    "game.kicked" : "Kicked {name} from the game.",
     "game.start_response" : "Game started. Use `/join` to join.",
     "game.start" : "Game starting with {players}",
     "game.cancelled" : "All players have left, game cancelled.",

@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from discord import HTTPException, Interaction, Member
-from discord.app_commands import command, guild_only
+from discord.app_commands import command, default_permissions, guild_only
 from discord.ext.commands import Bot, Cog
 
 from goldenballs.game import Game, Player
@@ -232,6 +232,23 @@ class GoldenBalls(Cog):
 
         # Notify game of action
         msg = game.on_leave(player)
+        await ctx.response.send_message(msg)
+        await self._handle_game_update(ctx)
+
+    @command(description=get_msg("command.kick.description"))
+    @default_permissions()
+    @guild_only()
+    async def kick(self, ctx: Interaction, target: Member):
+        """Removes a player from the game in the channel"""
+
+        # Check if a game is in this channel
+        game = await self._get_game(ctx)
+        if game is None:
+            return
+
+        # Notify game of action
+        player = self._get_player(target)
+        msg = game.on_leave(player, True)
         await ctx.response.send_message(msg)
         await self._handle_game_update(ctx)
 

@@ -149,6 +149,14 @@ class GameState(ABC):
         else:
             return None
 
+    def _get_leave_msg(self, player: Player, forced: bool = False) -> str:
+        """Gets the message for a player leaving the game"""
+
+        if forced:
+            return get_msg("game.kicked", name=player.name)
+        else:
+            return get_msg("game.left")
+
     def on_join(self, player: Player) -> StateRet:
         """Update function for when a player tries to join"""
 
@@ -179,11 +187,11 @@ class GameState(ABC):
 
         return self, get_msg("game.err.not_split_steal")
     
-    def on_leave(self, player: Player) -> StateRet:
+    def on_leave(self, player: Player, forced: bool = False) -> StateRet:
         """Update function for when a player tries to leave"""
 
         # Check player is in the game
-        if ret := self._require_playing(player):
+        if ret := self._require_playing(player, not forced):
             return ret
 
         # Remove the player
@@ -196,7 +204,7 @@ class GameState(ABC):
         else:
             state = self
 
-        return state, get_msg("game.left")
+        return state, self._get_leave_msg(player, forced)
 
 
 class WaitingState(GameState):
@@ -355,7 +363,7 @@ class HiddenShownState(GameState):
     def on_view_balls(self, player: Player) -> StateRet:
         return self, get_msg("round1_2.hidden", balls=Ball.describe_list(self.hidden_balls[player]))
     
-    def on_leave(self, player: Player) -> StateRet:
+    def on_leave(self, player: Player, forced: bool = False) -> StateRet:
         # Check player is in the game
         if ret := self._require_playing(player):
             return ret
@@ -379,7 +387,7 @@ class HiddenShownState(GameState):
         # Remove player and move to next state
         state = self._start_next(player)
 
-        return state, get_msg("game.left")
+        return state, self._get_leave_msg(player, forced)
 
 
 class FourPlayerState(HiddenShownState):
@@ -520,10 +528,10 @@ class BinWinState(GameState):
             )
             return SplitStealState(self.game, self.win_balls), message
     
-    def on_leave(self, player: Player) -> StateRet:
+    def on_leave(self, player: Player, forced: bool = False) -> StateRet:
         before = len(self.game.players)
         idx = self.game.players.index(player)
-        ret = super().on_leave(player)
+        ret = super().on_leave(player, forced)
 
         if before != len(self.game.players) and idx == self.player_id:
             self.player_id = 0
@@ -605,8 +613,8 @@ class SplitStealState(GameState):
     def on_steal(self, player: Player) -> StateRet:
         return self._handle_action(player, self.Action.STEAL)
     
-    def on_leave(self, player: Player) -> StateRet:
-        state, msg = super().on_leave(player)
+    def on_leave(self, player: Player, forced: bool = False) -> StateRet:
+        state, msg = super().on_leave(player, forced)
 
         if len(self.game.players) == 1:
             state = self._finish_game()
@@ -768,8 +776,8 @@ class Game(Generic[PlayerCtx]):
         self.state, response = self.state.on_steal(player)
         return response
     
-    def on_leave(self, player: Player) -> str:
+    def on_leave(self, player: Player, forced: bool = False) -> str:
         """Handles a player trying to leave the game"""
 
-        self.state, response = self.state.on_leave(player)
+        self.state, response = self.state.on_leave(player, forced)
         return response
