@@ -232,7 +232,9 @@ class WaitingState(GameState):
             state = self
 
         return state, get_msg("game.join")
-    
+
+    def __str__(self) -> str:
+        return "WaitingState()"
 
 class HiddenShownState(GameState):
     shown_balls: Dict[Player, List[Ball]]
@@ -409,6 +411,9 @@ class FourPlayerState(HiddenShownState):
             ThreePlayerState
         )
 
+    def __str__(self) -> str:
+        return "FourPlayerState()"
+
 
 class ThreePlayerState(HiddenShownState):
     SHOWN_COUNT = 2
@@ -428,6 +433,9 @@ class ThreePlayerState(HiddenShownState):
             self.HIDDEN_COUNT,
             BinWinState
         )
+
+    def __str__(self) -> str:
+        return "ThreePlayerState()"
 
 
 class BinWinState(GameState):
@@ -539,6 +547,9 @@ class BinWinState(GameState):
 
         return ret
 
+    def __str__(self) -> str:
+        return "BinWinState()"
+
 
 class SplitStealState(GameState):
     class Action(Enum):
@@ -621,6 +632,9 @@ class SplitStealState(GameState):
 
         return state, msg
 
+    def __str__(self) -> str:
+        return "SplitStealState()"
+
 
 class FinishedState(GameState):
     def __init__(self, game: "Game"):
@@ -633,6 +647,8 @@ class FinishedState(GameState):
         # Flag the game as finished
         self.game.finished = True
 
+    def __str__(self) -> str:
+        return "FinishedState()"
 
 class Game(Generic[PlayerCtx]):
     # Player who started the game
@@ -671,7 +687,7 @@ class Game(Generic[PlayerCtx]):
         self._add_player(host)
 
     def __str__(self) -> str:
-        return f"Game({', '.join(str(player) for player in self.players)})"
+        return f"Game({self.state}, {', '.join(str(player) for player in self.players)})"
 
     @staticmethod
     def start_game(host: Player) -> Tuple[Optional["Game"], str]:

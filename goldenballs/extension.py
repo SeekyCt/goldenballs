@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
 from discord import HTTPException, Interaction, Member
-from discord.app_commands import command, default_permissions, guild_only
+from discord.app_commands import command, check, Group, guild_only
 from discord.ext.commands import Bot, Cog
 
 from goldenballs.game import Game, Player
@@ -267,6 +267,24 @@ class GoldenBalls(Cog):
         msg = game.on_leave(player, True)
         await ctx.response.send_message(msg)
         await self._handle_game_update(ctx)
+
+
+    @staticmethod
+    def is_bot_admin(ctx: Interaction) -> bool:
+        return ctx.user.id in GoldenBalls.BOT_ADMINS
+    @check(is_bot_admin)
+    class BotAdmin(Group):
+        pass
+    botadmin = BotAdmin(name="botadmin", description="Bot admin commands")
+
+    @botadmin.command()
+    async def list_games(self, ctx: Interaction):
+        await ctx.response.send_message('\n'.join((
+            f"## {len(self.games)} Active Games:",
+            '\n'.join(
+                f"- {i}: {game} in <#{channel}>" for i, (channel, game) in enumerate(self.games.items())
+            )
+        )))
 
 
 async def setup(bot: Bot):
