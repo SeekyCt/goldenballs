@@ -605,7 +605,7 @@ class FinishedState(GameState):
         super().__init__(game)
 
         # Remove all players from the game
-        for player in self.game.players:
+        for player in self.game.players[:]:
             self.game._remove_player(player)
 
         # Flag the game as finished
