@@ -282,7 +282,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message('\n'.join((
             f"## {len(self.games)} Active Games:",
             '\n'.join(
-                f"- {i}: {game} in <#{channel}>" for i, (channel, game) in enumerate(self.games.items())
+                f"- {game} in <#{channel}>" for channel, game in self.games.items()
             )
         )))
 
