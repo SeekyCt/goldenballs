@@ -635,6 +635,9 @@ class FinishedState(GameState):
 
 
 class Game(Generic[PlayerCtx]):
+    # Player who started the game
+    host: Player
+
     # Current state of the game
     state: GameState
 
@@ -656,7 +659,7 @@ class Game(Generic[PlayerCtx]):
     # The results of the game, if finished
     results: Dict[Player[PlayerCtx], int]
 
-    def __init__(self):
+    def __init__(self, host: Player):
         self.players = []
         self.state = WaitingState(self)
         self.channel_messages = []
@@ -664,6 +667,8 @@ class Game(Generic[PlayerCtx]):
         self.machine_balls = CashBall.generate_pool()
         self.finished = False
         self.results = {}
+        self.host = host
+        self._add_player(host)
 
     def __str__(self) -> str:
         return f"Game({', '.join(str(player) for player in self.players)})"
@@ -677,8 +682,7 @@ class Game(Generic[PlayerCtx]):
             return None, get_msg("player.err.in_other_game")
 
         # Create a game with the host playing
-        game = Game()
-        game._add_player(host)
+        game = Game(host)
 
         return game, get_msg("game.start_response")
 
