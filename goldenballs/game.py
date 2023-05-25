@@ -28,6 +28,15 @@ class Ball(ABC):
         """Applies the value / effefct of this ball to the prize"""
 
         raise NotImplementedError
+    
+    @staticmethod
+    def calculate_total(balls: List["Ball"]) -> int:
+        """Calculates the total value of a sequence of balls"""
+
+        total = 0
+        for ball in balls:
+            total = ball.apply(total)
+        return total
 
     @staticmethod
     def describe_list(balls: List["Ball"]) -> str:
@@ -222,13 +231,15 @@ class HiddenShownState(GameState):
     hidden_balls: Dict[Player, List[Ball]]
     votes: Dict[Player, Player]
     next_state: Type[GameState]
+    number: int
 
-    def __init__(self, game: "Game", initial_balls: Iterable[Ball], new_cash_ball_count: int, new_killer_count: int,
-                 shown_count: int, hidden_count: int, next_state: Type[GameState]):
+    def __init__(self, game: "Game", number: int, initial_balls: Iterable[Ball], new_cash_ball_count: int,
+                 new_killer_count: int, shown_count: int, hidden_count: int, next_state: Type[GameState]):
         super().__init__(game)
 
-        # Backup next state
+        # Backup next state and round number
         self.next_state = next_state
+        self.number = number
 
         # Setup the initial balls
         balls = list(initial_balls)
@@ -255,6 +266,7 @@ class HiddenShownState(GameState):
         self.game._send_channel_message(
             get_msg(
                 "round1_2.announce",
+                round=self.number,
                 total=shown_count + hidden_count,
                 hidden=hidden_count,
                 shown=shown_count,
@@ -380,6 +392,7 @@ class FourPlayerState(HiddenShownState):
     def __init__(self, game: "Game"):
         super().__init__(
             game,
+            1,
             [],
             self.CASH_BALL_COUNT,
             self.KILLER_COUNT,
@@ -399,6 +412,7 @@ class ThreePlayerState(HiddenShownState):
     def __init__(self, game: "Game", initial_balls: Iterable[Ball]):
         super().__init__(
             game,
+            2,
             initial_balls,
             self.CASH_BALL_COUNT,
             self.KILLER_COUNT,
@@ -440,6 +454,7 @@ class BinWinState(GameState):
         shuffle(self.available_balls)
         self.available_balls.append(KillerBall())
 
+        self.game._send_channel_message(get_msg("round3.announce"))
         self._announce()
     
     def _announce(self):
@@ -471,7 +486,8 @@ class BinWinState(GameState):
             self.game._send_channel_message(
                 get_msg(
                     "round3.win_so_far",
-                    balls=Ball.describe_list(self.win_balls)
+                    balls=Ball.describe_list(self.win_balls),
+                    total=Ball.calculate_total(self.win_balls)
                 )
             )
 
@@ -530,9 +546,7 @@ class SplitStealState(GameState):
         self.actions = {}
 
         # Calculate total prize
-        self.prize = 0
-        for ball in initial_balls:
-            self.prize = ball.apply(self.prize)
+        self.prize = Ball.calculate_total(initial_balls)
         
         self.game._send_channel_message(get_msg("round4.announce", prize=self.prize))
  

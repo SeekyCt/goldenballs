@@ -14,7 +14,7 @@ MESSAGES = {
     "ball.cash" : "£{value:,} Ball",
     "ball.err.invalid" : "That's not a valid ball.",
 
-    "player.ball_list" : "    {name} - {balls}",
+    "player.ball_list" : "- {name} - {balls}",
     "player.err.in_game" : "You're already in this game,",
     "player.err.in_other_game" : "You're already in another game.",
     "player.err.not_in_game" : "You're not in this game.",
@@ -26,7 +26,7 @@ MESSAGES = {
 
     "game.join" : "You joined the game.",
     "game.left" : "You left the game.",
-    "game.start_response" : "Game started.",
+    "game.start_response" : "Game started. Use `/join` to join.",
     "game.start" : "Game starting with {players}",
     "game.cancelled" : "All players have left, game cancelled.",
     "game.err.not_joinable" : "The game is not joinable.",
@@ -36,16 +36,17 @@ MESSAGES = {
     "game.err.not_split_steal" : "The game is not in the split/steal stage.",
     
     "round1_2.announce" : '\n'.join((
+        "## Round {round}",
         "Everyone has been given {total} balls, {hidden} hidden and {shown} shown.",
         "The shown balls are:",
         "{shown_list}",
         "Your hidden balls will be sent in dms.",
-        "Use /vote to pick a player to remove from the game, along with their balls."
+        "Use `/vote` to pick a player to remove from the game, along with their balls."
     )),
     "round1_2.hidden" : "Your hidden balls are: {balls}",
     "round1_2.voted" : "{name} has voted.",
     "round1_2.voted_response" : "Vote registered.",
-    "round1_2.vote_entry" : "    - {name}",
+    "round1_2.vote_entry" : "- {name}",
     "round1_2.done" : '\n'.join((
         "The votes are in:",
         "{votes}",
@@ -59,15 +60,22 @@ MESSAGES = {
         "{hidden}",
     )),
 
-    "round3.pick.win" : "{name}, pick a ball from 1-{max} to win.",
-    "round3.pick.bin" : "{name}, pick a ball from 1-{max} to bin.",
+    "round3.announce" : "## Bin or Win",
+    "round3.pick.win" : "{name}, pick a ball from 1-{max} to win with `/pick`.",
+    "round3.pick.bin" : "{name}, pick a ball from 1-{max} to bin with `/pick`.",
     "round3.picked.win" : "{name} wins the {ball}",
     "round3.picked.bin" : "{name} bins the {ball}",
-    "round3.win_so_far" : "Balls to win so far: {balls}",
+    "round3.win_so_far" : '\n'.join((
+        "Balls to win so far: {balls}",
+        "The current total is £{total}."
+    )),
     "round3.final_bin" : "The last balled binned is the {ball}",
     "round3.final_win" : "Final balls to win: {balls}",
 
-    "round4.announce" : "The final prize money is £{prize:,}. Choose whether to /split or /steal.",
+    "round4.announce" : '\n'.join((
+        "## Split or Steal",
+        "The final prize money is £{prize:,}. Choose whether to `/split` or `/steal`.",
+    )),
     "round4.action" : "{name} has chosen their action.",
     "round4.lose" : "Both players stole, the money is lost.",
     "round4.steal" : "{winner} steals all £{prize:,}.",
