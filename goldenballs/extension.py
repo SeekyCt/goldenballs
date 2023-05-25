@@ -286,6 +286,25 @@ class GoldenBalls(Cog):
             )
         )))
 
+    @botadmin.command()
+    async def kill_game(self, ctx: Interaction, channel_id: Optional[int] = None):
+        channel_id = channel_id or ctx.channel_id
+        game = self.games[channel_id]
+        del self.games[channel_id]
+        game.kill()
+        txt = str(game)
+        await ctx.response.send_message(f"Killed game {txt}")
+    
+    @botadmin.command()
+    async def kill_all_games(self, ctx: Interaction):
+        ret = []
+        for channel_id, game in self.games.copy().items():
+            del self.games[channel_id]
+            txt = str(game)
+            game.kill()
+            ret.append(f"Killed game {txt}")
+        await ctx.response.send_message('\n'.join(ret))
+
 
 async def setup(bot: Bot):
     await bot.add_cog(GoldenBalls(bot))

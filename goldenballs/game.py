@@ -801,3 +801,8 @@ class Game(Generic[PlayerCtx]):
 
         self.state, response = self.state.on_leave(player, forced)
         return response
+    
+    def kill(self):
+        """Terminates the game"""
+
+        self.state = FinishedState(self)
