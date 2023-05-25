@@ -223,13 +223,14 @@ class GoldenBalls(Cog):
         # Get target user
         user = ctx.user
 
-        # Notify game of action
+        # Check if player is in a game
         player = self._get_player(user)
         game = player.current_game
         if game is None:
             await ctx.response.send_message(get_msg("user.err.no_game"))
             return
 
+        # Notify game of action
         msg = game.on_leave(player)
         await ctx.response.send_message(msg)
         await self._handle_game_update(ctx)
