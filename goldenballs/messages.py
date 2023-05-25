@@ -1,6 +1,8 @@
 MESSAGES = {
     # extension.py
 
+    "command.err.no_perms" : "You don't have permission to use this command",
+
     "dm.err.fail" : "Error sending dm to {name}: {exception}",
 
     "channel.err.no_game" : "Error: there's no game in this channel.",

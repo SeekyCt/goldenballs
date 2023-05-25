@@ -15,6 +15,10 @@ GBGame = Game[ChannelId]
 
 
 class GoldenBalls(Cog):
+    BOT_ADMINS = [
+        569648667108179968
+    ]
+
     # Discord bot instance
     bot: Bot
 
@@ -78,6 +82,14 @@ class GoldenBalls(Cog):
         # Remove game if finished
         if game.is_finished():
             del self.games[ctx.channel_id]
+    
+    async def _require_authority(self, ctx: Interaction, game: Game) -> Optional[str]:
+        if not (
+            game.host == self._get_player(ctx.user) or
+            ctx.user.guild_permissions.administrator or
+            ctx.user.id in self.BOT_ADMINS
+        ):
+            return get_msg("command.err.no_perms")
 
     @command(description=get_msg("command.start.description"))
     @guild_only()
@@ -236,7 +248,6 @@ class GoldenBalls(Cog):
         await self._handle_game_update(ctx)
 
     @command(description=get_msg("command.kick.description"))
-    @default_permissions()
     @guild_only()
     async def kick(self, ctx: Interaction, target: Member):
         """Removes a player from the game in the channel"""
@@ -244,6 +255,11 @@ class GoldenBalls(Cog):
         # Check if a game is in this channel
         game = await self._get_game(ctx)
         if game is None:
+            return
+
+        # Check player has permission to kick
+        if msg := self._require_authority(ctx, game):
+            await ctx.response.send_message(msg)
             return
 
         # Notify game of action
