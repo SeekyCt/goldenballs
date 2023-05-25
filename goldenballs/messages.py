@@ -8,6 +8,15 @@ MESSAGES = {
 
     "user.err.no_game" : "Error: you're not in a game.",
 
+    "command.start.description" : "Starts a game of Golden Balls in this channel.",
+    "command.join.description" : "Joins the game of Golden Balls in this channel.",
+    "command.vote.description" : "Round 1/2 - vote for the player to remove.",
+    "command.view_balls.description" : "Round 1/2 - check your hidden balls.",
+    "command.pick.description" : "Bin or Win - pick the ball.",
+    "command.split.description" : "Split or Steal - split the money.",
+    "command.steal.description" : "Split or Steal - steal the money.",
+    "command.leave.description" : "Leave the game.",
+
     # game.py
 
     "ball.killer" : "Killer Ball",

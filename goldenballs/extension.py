@@ -79,7 +79,7 @@ class GoldenBalls(Cog):
         if game.is_finished():
             del self.games[ctx.channel_id]
 
-    @command()
+    @command(description=get_msg("command.start.description"))
     @guild_only()
     async def start(self, ctx: Interaction, user: Member = None):
         """Starts a game in a channel, if it's free"""
@@ -100,7 +100,7 @@ class GoldenBalls(Cog):
             self.games[ctx.channel_id] = game
         await self._handle_game_update(ctx)
 
-    @command()
+    @command(description=get_msg("command.join.description"))
     @guild_only()
     async def join(self, ctx: Interaction, user: Member = None):
         """Joins the game in the channel, if it exists and the user is free"""
@@ -119,7 +119,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg, ephemeral=(not player.is_busy()))
         await self._handle_game_update(ctx)
 
-    @command()
+    @command(description=get_msg("command.vote.description"))
     @guild_only()
     async def vote(self, ctx: Interaction, target: Member, user: Member = None):
         """Round 1 & 2 - votes for the player to remove"""
@@ -139,7 +139,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg, ephemeral=True)
         await self._handle_game_update(ctx)
     
-    @command()
+    @command(description=get_msg("command.view_balls.description"))
     @guild_only()
     async def view_balls(self, ctx: Interaction, user: Member = None):
         """Round 1 & 2 - view your hidden balls"""
@@ -158,7 +158,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg, ephemeral=True)
         await self._handle_game_update(ctx)
 
-    @command()
+    @command(description=get_msg("command.pick.description"))
     @guild_only()
     async def pick(self, ctx: Interaction, ball_id: int, user: Member = None):
         """Round 3 - picks a ball"""
@@ -177,7 +177,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg)
         await self._handle_game_update(ctx)
 
-    @command()
+    @command(description=get_msg("command.split.description"))
     @guild_only()
     async def split(self, ctx: Interaction, user: Member = None):
         """Round 4 - chooses to split the prize"""
@@ -196,7 +196,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg, ephemeral=True)
         await self._handle_game_update(ctx)
 
-    @command()
+    @command(description=get_msg("command.steal.description"))
     @guild_only()
     async def steal(self, ctx: Interaction, user: Member = None):
         """Round 4 - chooses to steal the prize"""
@@ -215,7 +215,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(msg, ephemeral=True)
         await self._handle_game_update(ctx)
 
-    @command()
+    @command(description=get_msg("command.leave.description"))
     @guild_only()
     async def leave(self, ctx: Interaction, user: Member = None):
         """Leaves your current game, if in one"""
