@@ -196,7 +196,7 @@ class GameState(ABC):
         else:
             state = self
 
-        return self, get_msg("game.left")
+        return state, get_msg("game.left")
 
 
 class WaitingState(GameState):
