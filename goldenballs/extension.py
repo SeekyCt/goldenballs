@@ -303,6 +303,16 @@ class GoldenBalls(Cog):
             ret.append(f"- {txt} in <#{channel_id}>")
         await ctx.response.send_message('\n'.join(ret))
     
+    @botadmin.command()
+    async def list_players(self, ctx: Interaction):
+        await ctx.response.send_message('\n'.join((
+            f"## {len(self.games)} Known Players:",
+            '\n'.join(
+                f"- {player} ({user_id})"
+                for user_id, player in self.players.items()
+            )
+        )))
+
     async def cog_app_command_error(self, ctx: Interaction, error: DiscordException):
         if isinstance(ctx.command, Command) and ctx.command.parent is self.botadmin:
             await ctx.response.send_message(str(error), ephemeral=True)
