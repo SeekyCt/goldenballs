@@ -314,6 +314,41 @@ class HiddenShownState(GameState):
         # Move to next state
         return self.next_state(self.game, self._get_ball_list())
 
+    def _vote_done(self) -> GameState:
+        # Find who was voted off
+        vote_counts = Counter(self.votes.values()).most_common()            
+
+        # Announce the votes
+        self.game._send_channel_message(
+            get_msg(
+                "round1_2.vote_results",
+                votes='\n'.join(
+                    get_msg("round1_2.vote_entry", name=player.get_name())
+                    for player in self.votes.values()
+                ),
+            )
+        )
+
+        # Announce the round ending
+        loser = vote_counts[0][0]
+        self.game._send_channel_message(
+            get_msg(
+                "round1_2.done",
+                loser=loser.get_name(),
+                hidden='\n'.join(
+                    get_msg(
+                        "player.ball_list",
+                        name=player.get_name(),
+                        balls=Ball.describe_list(self.hidden_balls[player])
+                    )
+                    for player in self.game.players
+                ),
+            )
+        )
+
+        # Move to next state
+        return self._start_next(loser)        
+
     def on_vote(self, player: Player, target: Player) -> StateRet:
         # Check the vote is valid
         if player in self.votes:
@@ -333,31 +368,7 @@ class HiddenShownState(GameState):
 
         # Check for all votes being ready
         if len(self.votes) == len(self.game.players):
-            # Find who was voted off
-            loser = Counter(self.votes.values()).most_common()[0][0]
-
-            # Announce the votes
-            self.game._send_channel_message(
-                get_msg(
-                    "round1_2.done",
-                    votes='\n'.join(
-                        get_msg("round1_2.vote_entry", name=player.get_name())
-                        for player in self.votes.values()
-                    ),
-                    loser=loser.get_name(),
-                    hidden='\n'.join(
-                        get_msg(
-                            "player.ball_list",
-                            name=player.get_name(),
-                            balls=Ball.describe_list(self.hidden_balls[player])
-                        )
-                        for player in self.game.players
-                    ),
-                )
-            )
-
-            # Move to next state
-            state = self._start_next(loser)
+            state = self._vote_done()
         else:
             state = self
 

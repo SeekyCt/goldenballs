@@ -60,9 +60,11 @@ MESSAGES = {
     "round1_2.voted" : "{name} has voted.",
     "round1_2.voted_response" : "Vote registered.",
     "round1_2.vote_entry" : "- {name}",
-    "round1_2.done" : '\n'.join((
+    "round1_2.vote_results" : '\n'.join((
         "The votes are in:",
         "{votes}",
+    )),
+    "round1_2.done" : '\n'.join((
         "{loser} has been voted off.",
         "The hidden balls were:",
         "{hidden}",
