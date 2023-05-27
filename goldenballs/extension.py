@@ -313,6 +313,12 @@ class GoldenBalls(Cog):
             )
         )))
 
+    @botadmin.command()
+    async def hard_reset(self, ctx: Interaction):
+        self.games = {}
+        self.players = {}
+        await ctx.response.send_message("Reset all data")
+
     async def cog_app_command_error(self, ctx: Interaction, error: DiscordException):
         if isinstance(ctx.command, Command) and ctx.command.parent is self.botadmin:
             await ctx.response.send_message(str(error), ephemeral=True)
