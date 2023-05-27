@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 from enum import Enum, IntEnum
 from operator import countOf
 from random import shuffle
-from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Tuple, Type, TypeVar
+from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Set, Tuple, Type, TypeVar
 
 from goldenballs.messages import get_msg
 from goldenballs.util import pop_random
@@ -239,6 +239,7 @@ class WaitingState(GameState):
 class HiddenShownState(GameState):
     shown_balls: Dict[Player, List[Ball]]
     hidden_balls: Dict[Player, List[Ball]]
+    vote_candidates: Set[Player]
     votes: Dict[Player, Player]
     next_state: Type[GameState]
     number: int
@@ -296,6 +297,10 @@ class HiddenShownState(GameState):
             self.game._send_dm(player, get_msg("round1_2.hidden", balls=Ball.describe_list(self.hidden_balls[player])))
 
         # Init votes
+        self._init_votes(self.game.players)
+    
+    def _init_votes(self, players: Iterable[Player]):
+        self.vote_candidates = set(players)
         self.votes = {}
 
     def _get_ball_list(self) -> List[Ball]:
@@ -315,9 +320,6 @@ class HiddenShownState(GameState):
         return self.next_state(self.game, self._get_ball_list())
 
     def _vote_done(self) -> GameState:
-        # Find who was voted off
-        vote_counts = Counter(self.votes.values()).most_common()            
-
         # Announce the votes
         self.game._send_channel_message(
             get_msg(
@@ -329,25 +331,45 @@ class HiddenShownState(GameState):
             )
         )
 
-        # Announce the round ending
-        loser = vote_counts[0][0]
-        self.game._send_channel_message(
-            get_msg(
-                "round1_2.done",
-                loser=loser.get_name(),
-                hidden='\n'.join(
-                    get_msg(
-                        "player.ball_list",
-                        name=player.get_name(),
-                        balls=Ball.describe_list(self.hidden_balls[player])
-                    )
-                    for player in self.game.players
-                ),
-            )
-        )
+        # Find who was voted off
+        vote_counts = Counter(self.votes.values())
+        max_count = vote_counts.most_common()[0][1]
+        losers = [player for player, count in vote_counts.items() if count == max_count]
 
-        # Move to next state
-        return self._start_next(loser)        
+        # Handle results
+        if len(losers) == 1:
+            # Announce the round ending
+            loser = losers[0]
+            self.game._send_channel_message(
+                get_msg(
+                    "round1_2.done",
+                    loser=loser.get_name(),
+                    hidden='\n'.join(
+                        get_msg(
+                            "player.ball_list",
+                            name=player.get_name(),
+                            balls=Ball.describe_list(self.hidden_balls[player])
+                        )
+                        for player in self.game.players
+                    ),
+                )
+            )
+
+            # Move to next state
+            return self._start_next(loser)
+        else:
+            # Start tiebreaker
+            self.game._send_channel_message(
+                get_msg(
+                    "round1_2.tie",
+                    candidates='\n'.join(
+                        get_msg("round1_2.vote_entry", name=player.get_name())
+                        for player in losers
+                    ),
+                )
+            )
+            self._init_votes(losers)
+            return self
 
     def on_vote(self, player: Player, target: Player) -> StateRet:
         # Check the vote is valid
@@ -359,6 +381,8 @@ class HiddenShownState(GameState):
             return ret
         if ret := self._require_playing(target, False):
             return ret
+        if target not in self.vote_candidates:
+            return self, get_msg("player.err.cant_vote")
 
         # Register vote
         self.votes[player] = target

@@ -8,7 +8,13 @@ if __name__ == '__main__':
         print(game.on_join(player))
 
     # Round 1
-    print(game.on_vote(game.players[0], game.players[1]))
+    print(game.on_vote(game.players[0], game.players[2]))
+    print(game.on_vote(game.players[1], game.players[2]))
+    for player in game.players[2:]:
+        print(game.on_vote(player, game.players[0]))
+    while msg := game.get_channel_message():
+        print(msg)
+    print(game.on_vote(game.players[0], game.players[2]))
     for player in game.players[1:]:
         print(game.on_vote(player, game.players[0]))
     while msg := game.get_channel_message():

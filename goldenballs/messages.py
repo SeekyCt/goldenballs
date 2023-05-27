@@ -34,6 +34,7 @@ MESSAGES = {
     "player.err.not_picking" : "It's not your turn to pick",
     "player.err.voted" : "You already voted.",
     "player.err.vote_self" : "You can't vote for yourself.",
+    "player.err.cant_vote" : "You can't vote for this player.",
     "player.err.action_done" : "You already chose your action.",
 
     "game.join" : "You joined the game.",
@@ -63,6 +64,12 @@ MESSAGES = {
     "round1_2.vote_results" : '\n'.join((
         "The votes are in:",
         "{votes}",
+    )),
+    "round1_2.tie" : '\n'.join((
+        "## Tiebreaker",
+        "The votes were a tie.",
+        "Please vote again for one of the following players:",
+        "{candidates}"
     )),
     "round1_2.done" : '\n'.join((
         "{loser} has been voted off.",
