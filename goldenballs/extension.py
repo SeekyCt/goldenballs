@@ -287,22 +287,20 @@ class GoldenBalls(Cog):
         )))
 
     @botadmin.command()
-    async def kill_game(self, ctx: Interaction, channel_id: Optional[int] = None):
-        channel_id = channel_id or ctx.channel_id
-        game = self.games[channel_id]
-        del self.games[channel_id]
-        game.kill()
+    async def kill_game(self, ctx: Interaction):
+        game = self.games.pop(ctx.channel_id)
         txt = str(game)
+        game.kill()
         await ctx.response.send_message(f"Killed game {txt}")
     
     @botadmin.command()
     async def kill_all_games(self, ctx: Interaction):
-        ret = []
+        ret = ["Killed games:"]
         for channel_id, game in self.games.copy().items():
             del self.games[channel_id]
             txt = str(game)
             game.kill()
-            ret.append(f"Killed game {txt}")
+            ret.append(f"- {txt} in <#{channel_id}>")
         await ctx.response.send_message('\n'.join(ret))
     
     async def cog_app_command_error(self, ctx: Interaction, error: DiscordException):
