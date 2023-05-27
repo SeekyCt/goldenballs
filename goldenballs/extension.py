@@ -76,12 +76,12 @@ class GoldenBalls(Cog):
         if game is None:
             return
 
-        # Output queued messages
-        await self._flush_message_queue(ctx, game)
-
         # Remove game if finished
         if game.is_finished():
             del self.games[ctx.channel_id]
+
+        # Output queued messages
+        await self._flush_message_queue(ctx, game)
     
     async def _require_authority(self, ctx: Interaction, game: Game) -> Optional[str]:
         if not (
@@ -107,9 +107,9 @@ class GoldenBalls(Cog):
         # Try start game
         host = self._get_player(user)
         game, message = Game.start_game(host)
-        await ctx.response.send_message(message, ephemeral=(game is None))
         if game is not None:
             self.games[ctx.channel_id] = game
+        await ctx.response.send_message(message, ephemeral=(game is None))
         await self._handle_game_update(ctx)
 
     @command(description=get_msg("command.join.description"))
