@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
-from discord import HTTPException, Interaction, Member
-from discord.app_commands import command, check, Group, guild_only
+from discord import DiscordException, HTTPException, Interaction, Member
+from discord.app_commands import command, Command, CheckFailure, Group, guild_only
 from discord.ext.commands import Bot, Cog
 
 from goldenballs.game import Game, Player
@@ -269,16 +269,15 @@ class GoldenBalls(Cog):
         await self._handle_game_update(ctx)
 
 
-    @staticmethod
-    def is_bot_admin(ctx: Interaction) -> bool:
-        return ctx.user.id in GoldenBalls.BOT_ADMINS
-
     class BotAdmin(Group):
-        pass
+        def interaction_check(self, ctx: Interaction) -> bool:
+            if ctx.user.id not in GoldenBalls.BOT_ADMINS:
+                raise CheckFailure("You must be a bot admin to use this command.")
+            return True
+
     botadmin = BotAdmin(name="botadmin", description="Bot admin commands")
 
     @botadmin.command()
-    @check(is_bot_admin)
     async def list_games(self, ctx: Interaction):
         await ctx.response.send_message('\n'.join((
             f"## {len(self.games)} Active Games:",
@@ -288,7 +287,6 @@ class GoldenBalls(Cog):
         )))
 
     @botadmin.command()
-    @check(is_bot_admin)
     async def kill_game(self, ctx: Interaction, channel_id: Optional[int] = None):
         channel_id = channel_id or ctx.channel_id
         game = self.games[channel_id]
@@ -298,7 +296,6 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(f"Killed game {txt}")
     
     @botadmin.command()
-    @check(is_bot_admin)
     async def kill_all_games(self, ctx: Interaction):
         ret = []
         for channel_id, game in self.games.copy().items():
@@ -307,6 +304,14 @@ class GoldenBalls(Cog):
             game.kill()
             ret.append(f"Killed game {txt}")
         await ctx.response.send_message('\n'.join(ret))
+    
+    async def cog_app_command_error(self, ctx: Interaction, error: DiscordException):
+        if isinstance(ctx.command, Command) and ctx.command.parent is self.botadmin:
+            await ctx.response.send_message(str(error), ephemeral=True)
+        elif isinstance(error, CheckFailure):
+            await ctx.response.send_message(str(error), ephemeral=True)
+        else:
+            raise error
 
 
 async def setup(bot: Bot):
