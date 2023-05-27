@@ -206,6 +206,17 @@ class GameState(ABC):
 
         return state, self._get_leave_msg(player, forced)
 
+    def view_state(self) -> str:
+        return '\n'.join((
+            f"## State",
+            str(self),
+            f"## Players",
+            '\n'.join((
+                f"- {player}"
+                for player in self.game.players
+            ))
+        ))
+
 
 class WaitingState(GameState):
     """State for waiting for all players to join"""
@@ -426,6 +437,31 @@ class HiddenShownState(GameState):
         state = self._start_next(player)
 
         return state, self._get_leave_msg(player, forced)
+    
+    def view_state(self) -> str:
+        return '\n'.join((
+            super().view_state(),
+            "### Shown Balls",
+            '\n'.join((
+                f"- {player}: {Ball.describe_list(balls)}"
+                for player, balls in self.shown_balls.items()
+            )),
+            "### Hidden Balls",
+            '\n'.join((
+                f"- {player}: {Ball.describe_list(balls)}"
+                for player, balls in self.hidden_balls.items()
+            )),
+            "### Candidates",
+            '\n'.join((
+                f"- {player}"
+                for player in self.vote_candidates
+            )),
+            "### Votes",
+            '\n'.join((
+                f"- {player}: {target}"
+                for player, target in self.votes.items()
+            ))
+        ))
 
 
 class FourPlayerState(HiddenShownState):
@@ -583,6 +619,23 @@ class BinWinState(GameState):
 
         return ret
 
+    def view_state(self) -> str:
+        return '\n'.join((
+            super().view_state(),
+            "### Balls Won",
+            '\n'.join((
+                f"- {ball.describe()}"
+                for ball in self.win_balls
+            )),
+            "### Total",
+            f"{Ball.calculate_total(self.win_balls)}",
+            "### Balls to Pick",
+            '\n'.join((
+                f"- {i+1}: {ball.describe()}"
+                for i, ball in enumerate(self.available_balls)
+            )),
+        ))
+
     def __str__(self) -> str:
         return "BinWinState()"
 
@@ -667,6 +720,16 @@ class SplitStealState(GameState):
             state = self._finish_game()
 
         return state, msg
+
+    def view_state(self) -> str:
+        return '\n'.join((
+            super().view_state(),
+            "### Actions",
+            '\n'.join((
+                f"- {player} - {action}"
+                for player, action in self.actions.items()
+            )),
+        ))
 
     def __str__(self) -> str:
         return "SplitStealState()"
@@ -837,6 +900,11 @@ class Game(Generic[PlayerCtx]):
 
         self.state, response = self.state.on_leave(player, forced)
         return response
+    
+    def view_state(self) -> str:
+        """Handles an admin viewing the internal state"""
+
+        return self.state.view_state()
     
     def kill(self):
         """Terminates the game"""
