@@ -272,12 +272,13 @@ class GoldenBalls(Cog):
     @staticmethod
     def is_bot_admin(ctx: Interaction) -> bool:
         return ctx.user.id in GoldenBalls.BOT_ADMINS
-    @check(is_bot_admin)
+
     class BotAdmin(Group):
         pass
     botadmin = BotAdmin(name="botadmin", description="Bot admin commands")
 
     @botadmin.command()
+    @check(is_bot_admin)
     async def list_games(self, ctx: Interaction):
         await ctx.response.send_message('\n'.join((
             f"## {len(self.games)} Active Games:",
@@ -287,6 +288,7 @@ class GoldenBalls(Cog):
         )))
 
     @botadmin.command()
+    @check(is_bot_admin)
     async def kill_game(self, ctx: Interaction, channel_id: Optional[int] = None):
         channel_id = channel_id or ctx.channel_id
         game = self.games[channel_id]
@@ -296,6 +298,7 @@ class GoldenBalls(Cog):
         await ctx.response.send_message(f"Killed game {txt}")
     
     @botadmin.command()
+    @check(is_bot_admin)
     async def kill_all_games(self, ctx: Interaction):
         ret = []
         for channel_id, game in self.games.copy().items():
