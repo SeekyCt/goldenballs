@@ -298,20 +298,21 @@ class HiddenShownState(GameState):
         # Init votes
         self.votes = {}
 
-    def _start_next(self, loser: Player) -> GameState:
-        # Remove the loser
-        self.game._remove_player(loser)
-
-        # Build new ball list
+    def _get_ball_list(self) -> List[Ball]:
         balls = []
         for player in self.game.players:
             for ball in self.shown_balls[player]:
                 balls.append(ball)
             for ball in self.hidden_balls[player]:
                 balls.append(ball)
+        return balls
+
+    def _start_next(self, loser: Player) -> GameState:
+        # Remove the loser
+        self.game._remove_player(loser)
 
         # Move to next state
-        return self.next_state(self.game, balls)
+        return self.next_state(self.game, self._get_ball_list())
 
     def on_vote(self, player: Player, target: Player) -> StateRet:
         # Check the vote is valid
