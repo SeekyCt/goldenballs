@@ -635,6 +635,13 @@ class BinWinState(GameState):
     win_balls: List[Ball]
     available_balls: List[Ball]
 
+    """
+        initial_players
+        initial_balls
+        picks
+    """
+    stats: Dict
+
     def __init__(self, game: "Game", initial_balls: List[Ball], first_player: Player):
         super().__init__(game)
 
@@ -644,6 +651,12 @@ class BinWinState(GameState):
         self.available_balls = list(initial_balls)
         shuffle(self.available_balls)
         self.available_balls.append(KillerBall())
+
+        self.stats = {
+            'initial_players' : [player.id for player in self.game.players],
+            'initial_balls' : [ball.stats_name() for ball in initial_balls],
+            'picks' : [],
+        }
 
         self.game._send_channel_message(get_msg("round3.announce"))
         self._announce()
@@ -682,6 +695,9 @@ class BinWinState(GameState):
                 )
             )
 
+        # Update stats
+        self.stats['picks'].append((player.id, ball.stats_name()))
+
         # Set message
         message = get_msg(
             self.action.picked_msg(),
@@ -701,11 +717,17 @@ class BinWinState(GameState):
             self._announce()
             return self, message
         else:
-            # Move to next round
+            # Bin final ball
             binned = self.available_balls.pop()
             self.game._send_channel_message(
                 get_msg("round3.final_bin", ball=binned.describe())
             )
+
+            # Update stats
+            self.stats['picks'].append((None, binned.stats_name()))
+            self.game.stats.append(self.stats)
+
+            # Move to next round
             self.game._send_channel_message(
                 get_msg("round3.final_win", balls=Ball.describe_list(self.win_balls))
             )
