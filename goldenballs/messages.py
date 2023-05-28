@@ -54,7 +54,7 @@ MESSAGES = {
         "Everyone has been given {total} balls, {hidden} hidden and {shown} shown.",
         "The shown balls are:",
         "{shown_list}",
-        "Your hidden balls will be sent in dms.",
+        "Your hidden balls will be sent in dms, and can also be viewed with `/view_balls`.",
         "Use `/vote` to pick a player to remove from the game, along with their balls."
     )),
     "round1_2.hidden" : "Your hidden balls are: {balls}",
