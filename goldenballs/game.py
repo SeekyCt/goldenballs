@@ -11,6 +11,7 @@ from goldenballs.util import pop_random
 
 
 PlayerCtx = TypeVar("PlayerCtx")
+PlayerType = TypeVar("PlayerType", bound="Player")
 
 # New state, response message
 StateRet = Tuple["GameState", str]
@@ -160,10 +161,10 @@ class EndingType(StrEnum):
 
 
 @dataclass
-class GameResults(Generic[PlayerCtx]):
-    winnings: Dict[Player[PlayerCtx], int]
+class GameResults(Generic[PlayerType]):
+    winnings: Dict[PlayerType, int]
     ending_type: EndingType
-    final_players: List[Player[PlayerCtx]]
+    final_players: List[PlayerType]
 
 
 class GameState(ABC):
@@ -808,21 +809,21 @@ class FinishedState(GameState):
         return "FinishedState()"
 
 
-class Game(Generic[PlayerCtx]):
+class Game(Generic[PlayerType]):
     # Player who started the game
-    host: Player
+    host: PlayerType
 
     # Current state of the game
     state: GameState
 
     # Players currently in the game
-    players: List[Player[PlayerCtx]]
+    players: List[PlayerType]
 
     # Queued messages to broadcast
     channel_messages: List[str]
 
     # Queued messages to send personally
-    dms: DefaultDict[Player[PlayerCtx], List[str]]
+    dms: DefaultDict[PlayerType, List[str]]
 
     # The pool of balls in the machine
     machine_balls: List[CashBall]
@@ -831,15 +832,15 @@ class Game(Generic[PlayerCtx]):
     finished: bool
 
     # The amount won by each player
-    winnings: Dict[Player[PlayerCtx], int]
+    winnings: Dict[PlayerType, int]
 
     # The players who made it to split or steal
-    final_players: List[Player]
+    final_players: List[PlayerType]
 
     # The way the game ended
     ending_type: EndingType
 
-    def __init__(self, host: Player):
+    def __init__(self, host: PlayerType):
         self.players = []
         self.state = WaitingState(self)
         self.channel_messages = []
@@ -854,7 +855,7 @@ class Game(Generic[PlayerCtx]):
         return f"Game({self.state}, {', '.join(str(player) for player in self.players)})"
 
     @staticmethod
-    def start_game(host: Player) -> Tuple[Optional["Game"], str]:
+    def start_game(host: PlayerType) -> Tuple[Optional["Game"], str]:
         """Tries to start a game with the host included"""
 
         # Check game can be started
@@ -866,14 +867,14 @@ class Game(Generic[PlayerCtx]):
 
         return game, get_msg("game.start_response")
 
-    def _add_player(self, player: Player):
+    def _add_player(self, player: PlayerType):
         """Adds a player to the game"""
 
         player.current_game = self
         self.players.append(player)
         self.winnings[player] = 0
 
-    def _remove_player(self, player: Player):
+    def _remove_player(self, player: PlayerType):
         """Removes a player from the game"""
 
         player.current_game = None
@@ -897,17 +898,17 @@ class Game(Generic[PlayerCtx]):
         else:
             return None
 
-    def _send_dm(self, player: Player, msg: str):
+    def _send_dm(self, player: PlayerType, msg: str):
         """Sends a personal message to a player"""
 
         self.dms[player].append(msg)
     
-    def get_dm_subjects(self) -> Iterable[Player]:
+    def get_dm_subjects(self) -> Iterable[PlayerType]:
         """Gets all players who have dms queued"""
 
         return self.dms.keys()
 
-    def get_dm(self, player: Player) -> Optional[str]:
+    def get_dm(self, player: PlayerType) -> Optional[str]:
         """Gets a personal message for a player, if any are queued"""
 
         if len(self.dms[player]) > 0:
@@ -919,49 +920,49 @@ class Game(Generic[PlayerCtx]):
         """Checks if the game is finised"""
         return self.finished
 
-    def get_results(self) -> GameResults[PlayerCtx]:
+    def get_results(self) -> GameResults[PlayerType]:
         """Gets the money given to each plpayer"""
 
         assert self.is_finished(), f"Can't get results of an unfinished game"
         return GameResults(self.winnings, self.ending_type, self.final_players)
 
-    def on_join(self, player: Player) -> str:
+    def on_join(self, player: PlayerType) -> str:
         """Handles a player trying to join the game"""
 
         self.state, response = self.state.on_join(player)
         return response
 
-    def on_vote(self, player: Player, target: Player) -> str:
+    def on_vote(self, player: PlayerType, target: PlayerType) -> str:
         """Handles a player trying to vote in the game"""
 
         self.state, response = self.state.on_vote(player, target)
         return response
     
-    def on_view_balls(self, player: Player) -> str:
+    def on_view_balls(self, player: PlayerType) -> str:
         """Handles a player trying to view their hidden balls"""
 
         self.state, response = self.state.on_view_balls(player)
         return response
     
-    def on_pick(self, player: Player, ball_id: int) -> str:
+    def on_pick(self, player: PlayerType, ball_id: int) -> str:
         """Handles a player trying to pick a ball"""
 
         self.state, response = self.state.on_pick(player, ball_id)
         return response
 
-    def on_split(self, player: Player) -> str:
+    def on_split(self, player: PlayerType) -> str:
         """Handles a player trying to split the prize"""
 
         self.state, response = self.state.on_split(player)
         return response
 
-    def on_steal(self, player: Player) -> str:
+    def on_steal(self, player: PlayerType) -> str:
         """Handles a player trying to steal the prize"""
 
         self.state, response = self.state.on_steal(player)
         return response
     
-    def on_leave(self, player: Player, forced: bool = False) -> str:
+    def on_leave(self, player: PlayerType, forced: bool = False) -> str:
         """Handles a player trying to leave the game"""
 
         self.state, response = self.state.on_leave(player, forced)

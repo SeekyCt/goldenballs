@@ -9,9 +9,8 @@ from goldenballs.messages import get_msg
 
 
 UserId = int
-ChannelId = int
 GBPlayer = Player[Member]
-GBGame = Game[ChannelId]
+GBGame = Game[GBPlayer]
 
 
 class GoldenBalls(Cog):
@@ -26,7 +25,7 @@ class GoldenBalls(Cog):
     players: Dict[UserId, GBPlayer]
 
     # Active games in each channel
-    games: Dict[ChannelId, GBGame]
+    games: Dict[int, GBGame]
 
     def __init__(self, bot):
         self.bot = bot
