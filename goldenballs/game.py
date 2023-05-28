@@ -715,27 +715,27 @@ class SplitStealState(GameState):
         # Determine winnings
         if len(self.game.players) == 1:
             winner = self.game.players[0]
-            self.game.results = {winner : self.prize}
+            self.game.results[winner] = self.prize
             self.game._send_channel_message(
                 get_msg("round4.only_player", winner=winner.get_name(), prize=self.prize)
             )
         else:
             steal_count = countOf(self.actions.values(), self.Action.STEAL)
             if steal_count == 2:
-                self.game.results = {}
                 self.game._send_channel_message(get_msg("round4.lose"))
             elif steal_count == 1:
                 if self.actions[self.game.players[0]] == self.Action.STEAL:
                     winner = self.game.players[0]
                 else:
                     winner = self.game.players[1]
-                self.game.results = {winner : self.prize}
+                self.game.results[winner] = self.prize
                 self.game._send_channel_message(
                     get_msg("round4.steal", winner=winner.get_name(), prize=self.prize)
                 )
             else:
                 prize = self.prize // 2
-                self.game.results = {player : prize for player in self.game.players}
+                for player in self.game.players:
+                    self.game.results[player] = prize
                 self.game._send_channel_message(
                     get_msg("round4.split", prize=self.prize)
                 )
@@ -841,6 +841,7 @@ class Game(Generic[PlayerCtx]):
 
         player.current_game = self
         self.players.append(player)
+        self.results[player] = 0
 
     def _remove_player(self, player: Player):
         """Adds a player to the game"""
