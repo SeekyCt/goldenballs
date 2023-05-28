@@ -152,7 +152,7 @@ class GoldenBalls(Cog):
     
     @command(description=get_msg("command.view_balls.description"))
     @guild_only()
-    async def view_balls(self, ctx: Interaction, user: Member = None):
+    async def view_balls(self, ctx: Interaction):
         """Round 1 & 2 - view your hidden balls"""
 
         # Get target user
