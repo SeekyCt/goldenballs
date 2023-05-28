@@ -29,6 +29,12 @@ class Ball(ABC):
 
         raise NotImplementedError
     
+    @abstractmethod
+    def get_cash_value(self) -> int:
+        """Gets the raw cash value of this ball"""
+
+        raise NotImplementedError
+    
     @staticmethod
     def calculate_total(balls: List["Ball"]) -> int:
         """Calculates the total value of a sequence of balls"""
@@ -36,6 +42,15 @@ class Ball(ABC):
         total = 0
         for ball in balls:
             total = ball.apply(total)
+        return total
+
+    @staticmethod
+    def calculate_cash_total(balls: List["Ball"]) -> int:
+        """Calculates the total cash in a sequence of balls"""
+
+        total = 0
+        for ball in balls:
+            total += ball.get_cash_value()
         return total
 
     @staticmethod
@@ -56,6 +71,9 @@ class KillerBall(Ball):
     def apply(self, prize: int) -> int:
         return round(prize / 10)
 
+    def get_cash_value(self) -> int:
+        return 0
+
 class CashBall(Ball):
     """A ball that adds cash to the prize"""
 
@@ -75,6 +93,9 @@ class CashBall(Ball):
 
     def apply(self, prize) -> int:
         return prize + self.value
+
+    def get_cash_value(self) -> int:
+        return self.value
 
     @staticmethod
     def generate_pool() -> List["CashBall"]:
@@ -510,7 +531,15 @@ class ThreePlayerState(HiddenShownState):
         )
 
     def _get_next_state(self, balls: List[Ball]) -> GameState:
-        return BinWinState(self.game, balls)
+        players = [
+            (
+                Ball.calculate_cash_total(self.hidden_balls[player] + self.shown_balls[player]),
+                player
+            )
+            for player in self.game.players
+        ]
+        players.sort(reverse=True)
+        return BinWinState(self.game, balls, players[0][1])
 
     def __str__(self) -> str:
         return "ThreePlayerState()"
@@ -538,11 +567,11 @@ class BinWinState(GameState):
     win_balls: List[Ball]
     available_balls: List[Ball]
 
-    def __init__(self, game: "Game", initial_balls: List[Ball]):
+    def __init__(self, game: "Game", initial_balls: List[Ball], first_player: Player):
         super().__init__(game)
 
         self.action = self.Action.BIN
-        self.player_id = 0
+        self.player_id = self.game.players.index(first_player)
         self.win_balls = []
         self.available_balls = list(initial_balls)
         shuffle(self.available_balls)

@@ -28,9 +28,12 @@ if __name__ == '__main__':
         print(msg)
     
     # Round 3
+    idx = game.state.player_id
     for i in range(11):
-        player = game.players[(i // 2) % 2]
+        player = game.players[idx]
         print(game.on_pick(player, 1))
+        if i % 2 == 1:
+            idx = (idx + 1) % 2
     while msg := game.get_channel_message():
         print(msg)
     
