@@ -33,7 +33,13 @@ class Ball(ABC):
         """Gets the raw cash value of this ball"""
 
         raise NotImplementedError
-    
+
+    @abstractmethod
+    def stats_name(self) -> str:
+        """Gets the name of the ball for stats"""
+
+        raise NotImplementedError
+
     @staticmethod
     def calculate_total(balls: List["Ball"]) -> int:
         """Calculates the total value of a sequence of balls"""
@@ -72,6 +78,9 @@ class KillerBall(Ball):
 
     def get_cash_value(self) -> int:
         return 0
+    
+    def stats_name(self) -> str:
+        return "Killer"
 
 class CashBall(Ball):
     """A ball that adds cash to the prize"""
@@ -95,6 +104,9 @@ class CashBall(Ball):
 
     def get_cash_value(self) -> int:
         return self.value
+    
+    def stats_name(self) -> str:
+        return str(self.value)
 
     @staticmethod
     def generate_pool() -> List["CashBall"]:
@@ -289,6 +301,15 @@ class HiddenShownState(GameState):
     votes: Dict[Player, Player]
     number: int
 
+    """
+        initial_players
+        shown_balls
+        hidden_balls
+        vote_sets
+        loser
+    """
+    stats: Dict
+
     def __init__(self, game: "Game", number: int, initial_balls: Iterable[Ball], new_cash_ball_count: int,
                  new_killer_count: int, shown_count: int, hidden_count: int):
         super().__init__(game)
@@ -342,6 +363,20 @@ class HiddenShownState(GameState):
 
         # Init votes
         self._init_votes(self.game.players)
+
+        # Init stats
+        self.stats = {
+            'initial_players' : [player.id for player in self.game.players],
+            'shown_balls' : {
+                player.id : [ball.stats_name() for ball in balls]
+                for player, balls  in self.shown_balls.items()
+            },
+            'hidden_balls' : {
+                player.id : [ball.stats_name() for ball in balls]
+                for player, balls  in self.shown_balls.items()
+            },
+            'vote_sets' : []
+        }
     
     def _init_votes(self, players: Iterable[Player]):
         self.vote_candidates = set(players)
@@ -364,6 +399,9 @@ class HiddenShownState(GameState):
         # Remove the loser
         self.game._remove_player(loser)
 
+        # Record stats
+        self.game.stats.append(self.stats)
+
         # Move to next state
         return self._get_next_state(self._get_ball_list())
 
@@ -379,6 +417,14 @@ class HiddenShownState(GameState):
             )
         )
 
+        # Update stats
+        self.stats['vote_sets'].append(
+            {
+                player.id : target.id
+                for player, target in self.votes.items()
+            }
+        )
+
         # Find who was voted off
         vote_counts = Counter(self.votes.values())
         max_count = vote_counts.most_common()[0][1]
@@ -386,8 +432,12 @@ class HiddenShownState(GameState):
 
         # Handle results
         if len(losers) == 1:
-            # Announce the round ending
             loser = losers[0]
+
+            # Update stats
+            self.stats['loser'] = loser
+
+            # Announce the round ending
             self.game._send_channel_message(
                 get_msg(
                     "round1_2.done",
@@ -468,7 +518,11 @@ class HiddenShownState(GameState):
                     for player in self.game.players
                 ),
             )
-        )        
+        )
+
+        # Update stats
+        self.stats['loser'] = player
+        self.stats['vote_sets'].append({})
 
         # Remove player and move to next state
         state = self._start_next(player)
@@ -837,6 +891,9 @@ class Game:
     # The way the game ended
     ending_type: EndingType
 
+    # Stats for each round
+    stats: List[Dict]
+
     def __init__(self, host: Player):
         self.players = []
         self.state = WaitingState(self)
@@ -846,6 +903,7 @@ class Game:
         self.finished = False
         self.winnings = {}
         self.host = host
+        self.stats = []
         self._add_player(host)
 
     def __str__(self) -> str:
