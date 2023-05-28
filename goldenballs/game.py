@@ -844,7 +844,7 @@ class Game(Generic[PlayerCtx]):
         self.results[player] = 0
 
     def _remove_player(self, player: Player):
-        """Adds a player to the game"""
+        """Removes a player from the game"""
 
         player.current_game = None
         self.players.remove(player)
