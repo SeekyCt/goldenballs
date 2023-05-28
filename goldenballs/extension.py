@@ -37,7 +37,7 @@ class GoldenBalls(Cog):
 
         # Register player if needed
         if member.id not in self.players:
-            self.players[member.id] = Player(member.nick or member.name, member)
+            self.players[member.id] = Player(member.nick or member.name, member.id, member)
 
         return self.players[member.id]
 

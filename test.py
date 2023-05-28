@@ -1,10 +1,10 @@
 from goldenballs.game import Player, Game
 
 if __name__ == '__main__':
-    game, msg = Game.start_game(Player("Host"))
+    game, msg = Game.start_game(Player("Host", 0))
     assert game is not None
     print(msg)
-    for player in [Player(f"Player {i}") for i in range(1, 4)]:
+    for player in [Player(f"Player {i}", i) for i in range(1, 4)]:
         print(game.on_join(player))
 
     # Round 1

@@ -128,14 +128,18 @@ class Player(Generic[PlayerCtx]):
     # Display name of the player
     name: str
 
+    # Unique id for this player
+    id: int
+
     # Game that this player is currently in
     current_game: Optional["Game"]
 
     # User code context for this player
     context: PlayerCtx
 
-    def __init__(self, name: str, context: PlayerCtx = None):
+    def __init__(self, name: str, id: int, context: PlayerCtx = None):
         self.name = name
+        self.id = id
         self.current_game = None
         self.context = context
 
@@ -150,7 +154,7 @@ class Player(Generic[PlayerCtx]):
         return self.name
 
     def __repr__(self):
-        return f"{self.get_name()}[{self.current_game is not None}]"
+        return f"{self.get_name()}({self.id}, {self.current_game is not None})"
 
 
 class EndingType(StrEnum):
