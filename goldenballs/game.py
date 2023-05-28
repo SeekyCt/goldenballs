@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
-from dataclasses import dataclass
-from enum import Enum, IntEnum, StrEnum
+from enum import Enum, IntEnum
 from operator import countOf
 from random import shuffle
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Set, Tuple, Type, TypeVar
@@ -160,20 +159,6 @@ class Player:
 
     def __repr__(self):
         return f"{self.get_name()}({self.id}, {self.current_game is not None})"
-
-
-class EndingType(StrEnum):
-    SPLIT = "SPLIT"
-    STEAL = "STEAL"
-    BOTH_STEAL = "BOTH_STEAL"
-    ONLY_PLAYER = "ONLY_PLAYER"
-
-
-@dataclass
-class GameResults:
-    winnings: Dict[Player, int]
-    ending_type: EndingType
-    final_players: List[Player]
 
 
 class GameState(ABC):
@@ -821,37 +806,30 @@ class SplitStealState(GameState):
         }
         self.game.stats.append(self.stats)
 
-        # Record final players
-        self.game.final_players = self.game.players[:]
-
         # Determine winnings
         if len(self.game.players) == 1:
-            self.game.ending_type = EndingType.ONLY_PLAYER
             winner = self.game.players[0]
-            self.game.winnings[winner] = self.prize
+            self.game.results[winner] = self.prize
             self.game._send_channel_message(
                 get_msg("round4.only_player", winner=winner.get_name(), prize=self.prize)
             )
         else:
             steal_count = countOf(self.actions.values(), self.Action.STEAL)
             if steal_count == 2:
-                self.game.ending_type = EndingType.BOTH_STEAL
                 self.game._send_channel_message(get_msg("round4.lose"))
             elif steal_count == 1:
-                self.game.ending_type = EndingType.STEAL
                 if self.actions[self.game.players[0]] == self.Action.STEAL:
                     winner = self.game.players[0]
                 else:
                     winner = self.game.players[1]
-                self.game.winnings[winner] = self.prize
+                self.game.results[winner] = self.prize
                 self.game._send_channel_message(
                     get_msg("round4.steal", winner=winner.get_name(), prize=self.prize)
                 )
             else:
-                self.game.ending_type = EndingType.SPLIT
                 prize = self.prize // 2
                 for player in self.game.players:
-                    self.game.winnings[player] = prize
+                    self.game.results[player] = prize
                 self.game._send_channel_message(
                     get_msg("round4.split", prize=self.prize)
                 )
@@ -924,13 +902,7 @@ class Game:
     finished: bool
 
     # The amount won by each player
-    winnings: Dict[Player, int]
-
-    # The players who made it to split or steal
-    final_players: List[Player]
-
-    # The way the game ended
-    ending_type: EndingType
+    results: Dict[Player, int]
 
     # Stats for each round
     stats: List[Dict]
@@ -942,7 +914,7 @@ class Game:
         self.dms = defaultdict(list)
         self.machine_balls = CashBall.generate_pool()
         self.finished = False
-        self.winnings = {}
+        self.results = {}
         self.host = host
         self.stats = []
         self._add_player(host)
@@ -968,7 +940,7 @@ class Game:
 
         player.current_game = self
         self.players.append(player)
-        self.winnings[player] = 0
+        self.results[player] = 0
 
     def _remove_player(self, player: Player):
         """Removes a player from the game"""
@@ -1016,11 +988,11 @@ class Game:
         """Checks if the game is finised"""
         return self.finished
 
-    def get_results(self) -> GameResults:
+    def get_results(self) -> Dict[Player, int]:
         """Gets the money given to each plpayer"""
 
         assert self.is_finished(), f"Can't get results of an unfinished game"
-        return GameResults(self.winnings, self.ending_type, self.final_players)
+        return self.results
 
     def on_join(self, player: Player) -> str:
         """Handles a player trying to join the game"""
