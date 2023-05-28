@@ -283,6 +283,7 @@ class WaitingState(GameState):
     def __str__(self) -> str:
         return "WaitingState()"
 
+
 class HiddenShownState(GameState):
     shown_balls: Dict[Player, List[Ball]]
     hidden_balls: Dict[Player, List[Ball]]
@@ -805,6 +806,7 @@ class FinishedState(GameState):
 
     def __str__(self) -> str:
         return "FinishedState()"
+
 
 class Game(Generic[PlayerCtx]):
     # Player who started the game
