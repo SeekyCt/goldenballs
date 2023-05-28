@@ -252,15 +252,13 @@ class HiddenShownState(GameState):
     hidden_balls: Dict[Player, List[Ball]]
     vote_candidates: Set[Player]
     votes: Dict[Player, Player]
-    next_state: Type[GameState]
     number: int
 
     def __init__(self, game: "Game", number: int, initial_balls: Iterable[Ball], new_cash_ball_count: int,
-                 new_killer_count: int, shown_count: int, hidden_count: int, next_state: Type[GameState]):
+                 new_killer_count: int, shown_count: int, hidden_count: int):
         super().__init__(game)
 
-        # Backup next state and round number
-        self.next_state = next_state
+        # Backup and round number
         self.number = number
 
         # Setup the initial balls
@@ -322,13 +320,17 @@ class HiddenShownState(GameState):
             for ball in self.hidden_balls[player]:
                 balls.append(ball)
         return balls
+    
+    @abstractmethod
+    def _get_next_state(self, balls: List[Ball]) -> GameState:
+        raise NotImplementedError
 
     def _start_next(self, loser: Player) -> GameState:
         # Remove the loser
         self.game._remove_player(loser)
 
         # Move to next state
-        return self.next_state(self.game, self._get_ball_list())
+        return self._get_next_state(self._get_ball_list())
 
     def _vote_done(self) -> GameState:
         # Announce the votes
@@ -479,9 +481,11 @@ class FourPlayerState(HiddenShownState):
             self.CASH_BALL_COUNT,
             self.KILLER_COUNT,
             self.SHOWN_COUNT,
-            self.HIDDEN_COUNT,
-            ThreePlayerState
+            self.HIDDEN_COUNT
         )
+
+    def _get_next_state(self, balls: List[Ball]) -> GameState:
+        return ThreePlayerState(self.game, balls)
 
     def __str__(self) -> str:
         return "FourPlayerState()"
@@ -502,9 +506,11 @@ class ThreePlayerState(HiddenShownState):
             self.CASH_BALL_COUNT,
             self.KILLER_COUNT,
             self.SHOWN_COUNT,
-            self.HIDDEN_COUNT,
-            BinWinState
+            self.HIDDEN_COUNT
         )
+
+    def _get_next_state(self, balls: List[Ball]) -> GameState:
+        return BinWinState(self.game, balls)
 
     def __str__(self) -> str:
         return "ThreePlayerState()"
