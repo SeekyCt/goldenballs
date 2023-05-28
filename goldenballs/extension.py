@@ -9,8 +9,6 @@ from goldenballs.messages import get_msg
 
 
 UserId = int
-GBPlayer = Player[Member]
-GBGame = Game[GBPlayer]
 
 
 class GoldenBalls(Cog):
@@ -22,10 +20,10 @@ class GoldenBalls(Cog):
     bot: Bot
 
     # Player instances for each discord user
-    players: Dict[UserId, GBPlayer]
+    players: Dict[UserId, Player]
 
     # Active games in each channel
-    games: Dict[int, GBGame]
+    games: Dict[int, Game]
 
     def __init__(self, bot):
         self.bot = bot
@@ -37,11 +35,11 @@ class GoldenBalls(Cog):
 
         # Register player if needed
         if member.id not in self.players:
-            self.players[member.id] = Player(member.nick or member.name, member.id, member)
+            self.players[member.id] = Player(member.nick or member.name, member.id)
 
         return self.players[member.id]
 
-    async def _flush_message_queue(self, ctx: Interaction, game: GBGame):
+    async def _flush_message_queue(self, ctx: Interaction, game: Game):
         """Outputs all queued messages to discord"""
 
         # Handle channel messages
@@ -51,14 +49,16 @@ class GoldenBalls(Cog):
         # Handle dms
         for player in game.get_dm_subjects():
             while dm := game.get_dm(player):
-                member: Member = player.context
                 try:
+                    member = await self.bot.fetch_user(player.id)
+                    if member is None:
+                        raise Exception(f"Can't find user {player.id}")
                     await member.create_dm()
                     await member.send(dm)
-                except HTTPException as e:
+                except Exception as e:
                     await ctx.channel.send(get_msg("dm.err.fail", name=player.get_name(), exception=e))
 
-    async def _get_game(self, ctx: Interaction) -> Optional[GBGame]:
+    async def _get_game(self, ctx: Interaction) -> Optional[Game]:
         """Gets the game for an interaction, if it exists"""
 
         game = self.games.get(ctx.channel_id)
