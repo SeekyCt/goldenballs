@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, StrEnum
 from operator import countOf
 from random import shuffle
 from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Set, Tuple, Type, TypeVar
@@ -152,11 +152,11 @@ class Player(Generic[PlayerCtx]):
         return f"{self.get_name()}[{self.current_game is not None}]"
 
 
-class EndingType(Enum):
-    SPLIT = 0
-    STEAL = 1
-    BOTH_STEAL = 2
-    ONLY_PLAYER = 3
+class EndingType(StrEnum):
+    SPLIT = "SPLIT"
+    STEAL = "STEAL"
+    BOTH_STEAL = "BOTH_STEAL"
+    ONLY_PLAYER = "ONLY_PLAYER"
 
 
 @dataclass
