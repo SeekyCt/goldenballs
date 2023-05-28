@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 from typing import Dict, Optional
 
-from discord import DiscordException, HTTPException, Interaction, Member
+from discord import DiscordException, Interaction, Member
 from discord.app_commands import command, Command, CheckFailure, Group, guild_only
 from discord.ext.commands import Bot, Cog
 

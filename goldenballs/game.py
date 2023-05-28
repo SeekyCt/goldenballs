@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
-from enum import Enum, IntEnum
+from enum import IntEnum
 from operator import countOf
 from random import shuffle
-from typing import DefaultDict, Dict, Generic, Iterable, List, Optional, Set, Tuple, Type, TypeVar
+from typing import DefaultDict, Dict, Iterable, List, Optional, Set, Tuple
 
 from goldenballs.messages import get_msg
 from goldenballs.util import pop_random
