@@ -766,12 +766,19 @@ class BinWinState(GameState):
 
 
 class SplitStealState(GameState):
-    class Action(Enum):
+    class Action(IntEnum):
         SPLIT = 0
         STEAL = 1
 
     actions: Dict[Player, Action]
     prize: int
+
+    """
+        initial_players
+        initial_balls
+        actions
+    """
+    stats: Dict
 
     def __init__(self, game: "Game", initial_balls: Iterable[Ball]):
         super().__init__(game)
@@ -782,6 +789,11 @@ class SplitStealState(GameState):
         self.prize = Ball.calculate_total(initial_balls)
         
         self.game._send_channel_message(get_msg("round4.announce", prize=self.prize))
+
+        self.stats = {
+            'initial_players' : [player.id for player in self.game.players],
+            'initial_balls' : [ball.stats_name() for ball in initial_balls],
+        }
  
     def _handle_action(self, player: Player, action: Action) -> StateRet:
         # Check action is valid
@@ -802,6 +814,13 @@ class SplitStealState(GameState):
         return state, get_msg("round4.action_response")
 
     def _finish_game(self) -> GameState:
+        # Update stats
+        self.stats['actions'] = {
+            player.id : int(action)
+            for player, action in self.actions.items()
+        }
+        self.game.stats.append(self.stats)
+
         # Record final players
         self.game.final_players = self.game.players[:]
 

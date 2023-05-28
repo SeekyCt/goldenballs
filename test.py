@@ -1,3 +1,4 @@
+from pprint import pprint
 from goldenballs.game import Player, Game
 
 if __name__ == '__main__':
@@ -44,5 +45,6 @@ if __name__ == '__main__':
         print(msg)
     
     print(game.get_results())
+    pprint(game.stats)
     assert game.is_finished()
     
