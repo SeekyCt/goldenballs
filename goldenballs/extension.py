@@ -1,3 +1,5 @@
+from datetime import datetime
+import json
 from typing import Dict, Optional
 
 from discord import DiscordException, HTTPException, Interaction, Member
@@ -67,6 +69,11 @@ class GoldenBalls(Cog):
 
         return game
 
+    def _save_stats(self, game: Game):
+        filename = datetime.now().strftime("stats/%d %m %y %H %M %S %f.json")
+        with open(filename, 'w') as f:
+            json.dump(game.stats, f)
+
     async def _handle_game_update(self, ctx: Interaction):
         """Handles the changes to the game in a channel"""
 
@@ -77,6 +84,7 @@ class GoldenBalls(Cog):
 
         # Remove game if finished
         if game.is_finished():
+            self._save_stats(game)
             del self.games[ctx.channel_id]
 
         # Output queued messages

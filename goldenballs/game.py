@@ -435,7 +435,7 @@ class HiddenShownState(GameState):
             loser = losers[0]
 
             # Update stats
-            self.stats['loser'] = loser
+            self.stats['loser'] = loser.id
 
             # Announce the round ending
             self.game._send_channel_message(
@@ -521,7 +521,7 @@ class HiddenShownState(GameState):
         )
 
         # Update stats
-        self.stats['loser'] = player
+        self.stats['loser'] = player.id
         self.stats['vote_sets'].append({})
 
         # Remove player and move to next state
