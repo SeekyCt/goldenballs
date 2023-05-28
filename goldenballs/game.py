@@ -163,7 +163,7 @@ class EndingType(Enum):
 class GameResults(Generic[PlayerCtx]):
     winnings: Dict[Player[PlayerCtx], int]
     ending_type: EndingType
-    final_players: List[Player]
+    final_players: List[Player[PlayerCtx]]
 
 
 class GameState(ABC):
