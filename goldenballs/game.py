@@ -831,7 +831,7 @@ class SplitStealState(GameState):
                 for player in self.game.players:
                     self.game.results[player] = prize
                 self.game._send_channel_message(
-                    get_msg("round4.split", prize=self.prize)
+                    get_msg("round4.split", prize=prize)
                 )
 
         return FinishedState(self.game)
