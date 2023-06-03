@@ -265,7 +265,7 @@ class GoldenBalls(Cog):
             return
 
         # Check player has permission to kick
-        if msg := self._require_authority(ctx, game):
+        if msg := await self._require_authority(ctx, game):
             await ctx.response.send_message(msg)
             return
 
