@@ -5,6 +5,8 @@ from discord.ext.commands import Bot
 
 extensions = ('goldenballs.extension',)
 
+ANNOUNCEMENTS_CHANNEL = 610974864706371585
+
 if __name__ == '__main__':
     intents = Intents.default()
     intents.message_content = True
@@ -18,5 +20,8 @@ if __name__ == '__main__':
 
         await bot.tree.sync()
         print("Logged on to", bot.user)
-    
+        
+        channel = await bot.fetch_channel(ANNOUNCEMENTS_CHANNEL)
+        await channel.send("Bot started.")
+ 
     bot.run(environ["GOLDEN_BALLS_TOKEN"])
